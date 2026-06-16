@@ -497,10 +497,6 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
       <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--amber)" id="omTotal">₹0</span>
     </div>
     <div class="om-warn">⚠ This places a REAL order on your Zerodha account. Verify qty before confirming.</div>
-    <!-- Stale position warning — injected by showOrderModal -->
-    <div id="omStaleWarn" style="display:none;font-family:var(--mono);font-size:8px;padding:6px 10px;border-radius:4px;margin-bottom:6px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:var(--bear)"></div>
-    <!-- Regime cap soft warning — injected by showOrderModal -->
-    <div id="omCapWarn" style="display:none;font-family:var(--mono);font-size:8px;padding:6px 10px;border-radius:4px;margin-bottom:6px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);color:var(--amber)"></div>
     <div style="display:flex;gap:8px">
       <button id="omConfirmBtn" class="btn-order-buy" onclick="confirmPlaceOrder()">Place Order</button>
       <button class="btn-order-cancel" onclick="closeOrderModal()">Cancel</button>
@@ -509,8 +505,44 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
     <div id="omGttPreview" style="font-family:var(--mono);font-size:8px;padding:5px 8px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.2);border-radius:4px;margin-top:6px;color:var(--teal)">🎯 GTT1 (TP +1.3% / SL -2.5%) + 🛡 GTT2 (gap-down -6%) auto-placed on LIMIT — <span id="omGttInfo">enter price to preview</span></div>
   </div>
 </div>
-<div id="tc"></div>
-<div class="shell">
+<!-- ══ BULK ORDER BOTTOM BAR ══ -->
+<div id="bulkBar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--bg2);border-top:2px solid var(--kite);box-shadow:0 -4px 24px rgba(0,0,0,.4);font-family:var(--mono);padding:8px 14px 10px;transition:transform .25s ease">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1400px;margin:0 auto">
+    <!-- Count + direction badge -->
+    <div style="display:flex;align-items:center;gap:8px;min-width:fit-content">
+      <span id="bulkCount" style="font-size:13px;font-weight:900;color:var(--kite)">0 selected</span>
+      <span id="bulkDirBadge" style="font-size:9px;padding:2px 8px;border-radius:10px;font-weight:800"></span>
+    </div>
+    <!-- Scrollable stock chips -->
+    <div id="bulkChips" style="display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;padding:2px 0;scrollbar-width:thin"></div>
+    <!-- Capital total -->
+    <div style="min-width:fit-content;text-align:right">
+      <div style="font-size:8px;color:var(--text3)">Total capital</div>
+      <div id="bulkTotal" style="font-size:14px;font-weight:900;color:var(--amber)">₹0</div>
+    </div>
+    <!-- Regime cap warning -->
+    <div id="bulkCapWarn" style="display:none;font-size:8px;color:var(--amber);padding:3px 8px;border:1px solid rgba(217,119,6,.4);border-radius:4px;max-width:200px;line-height:1.4"></div>
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;min-width:fit-content">
+      <button id="bulkFireBtn" onclick="bulkPlaceAllOrders()" style="background:var(--bull);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-family:var(--mono);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">🚀 Place All Orders + GTTs</button>
+      <button onclick="bulkClearAll()" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:10px;cursor:pointer">✕ Clear</button>
+    </div>
+    <!-- Progress bar (hidden until firing) -->
+    <div id="bulkProgress" style="display:none;width:100%;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text3);margin-bottom:3px">
+        <span id="bulkProgressLabel">Placing orders…</span>
+        <span id="bulkProgressCount"></span>
+      </div>
+      <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+        <div id="bulkProgressBar" style="height:100%;width:0%;background:var(--bull);border-radius:2px;transition:width .3s ease"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- bottom padding so content isn't hidden behind bulk bar -->
+<div id="bulkBarSpacer" style="display:none;height:80px"></div>
+
+
 
 <!-- HEADER -->
 <div class="masthead">
@@ -654,14 +686,13 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
   <!-- ══ 1% READY WATCHLIST ══ -->
   <div id="onepcReadySection" style="padding:8px 8px 0;font-family:var(--mono)">
     <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--kite);border-radius:6px;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:rgba(99,102,241,.08);flex-wrap:wrap;cursor:pointer;user-select:none" onclick="toggleSection('onepc')">
-        <span id="onepcArrow" style="font-size:10px;color:var(--kite);font-weight:900;transition:.2s">▼</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:rgba(99,102,241,.08);flex-wrap:wrap">
         <span style="font-size:11px;font-weight:900;color:var(--kite)">🎯 1% Ready</span>
         <span style="font-size:8px;color:var(--text3)">Stocks with highest probability of 1% move today · Score ≥70 = Prime</span>
         <span id="onepcCount" style="font-size:8px;color:var(--text3)"></span>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">Updates every 30s · ATR + Level + Signal + Volume + Sector</span>
       </div>
-      <div id="onepcBody_wrap" style="overflow-x:auto;max-height:320px;overflow-y:auto">
+      <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
         <table style="width:100%;border-collapse:collapse;font-size:9px">
           <thead><tr style="color:var(--text3);border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2)">
             <th style="padding:3px 8px;text-align:left">#</th>
@@ -683,17 +714,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
   </div>
 
   <!-- ══ PRE-BREAKOUT + BREAKOUT UNIFIED GRID ══ -->
-  <!-- Collapsible wrapper header -->
-  <div style="padding:4px 8px 0;font-family:var(--mono)">
-    <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--amber);border-radius:6px 6px 0 0;padding:6px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="toggleSection('pbo')">
-      <span id="pboArrow" style="font-size:10px;color:var(--amber);font-weight:900;transition:.2s">▼</span>
-      <span style="font-size:11px;font-weight:900;color:var(--amber)">🎯 Pre-Breakouts &amp; Breakouts</span>
-      <span style="font-size:8px;color:var(--text3)">Pre-Breakout BUY/SELL · Live Breakouts · Near-Level Alerts</span>
-      <span style="font-size:7px;color:var(--text3);margin-left:auto">Click to expand / collapse</span>
-    </div>
-  </div>
-  <div id="pboBrkGridWrap">
-  <div id="pboBrkGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 8px 8px;font-family:var(--mono)">
+  <div id="pboBrkGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 8px 0;font-family:var(--mono)">
 
     <!-- PRE-BREAKOUT BUY -->
     <div style="background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--amber);border-radius:6px;overflow:hidden">
@@ -798,7 +819,6 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
     </div>
 
   </div>
-  </div><!-- end pboBrkGridWrap -->
   <!-- ══ END PRE-BREAKOUT + BREAKOUT GRID ══ -->
 
   <div class="top25-grid" id="top25Grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -905,6 +925,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
     </div>
     <div class="tw"><table id="sigTable">
       <thead><tr>
+        <th style="width:24px;text-align:center;padding:2px 4px"><input type="checkbox" id="bulkSelectAll" title="Select all visible" onchange="bulkToggleAll(this.checked)" style="cursor:pointer;accent-color:var(--kite)"></th>
         <th onclick="sortSig('symbol')">Symbol</th><th onclick="sortSig('sector')">Sector</th>
         <th onclick="sortSig('signal')">Signal</th><th onclick="sortSig('score')">Score▼</th>
         <th onclick="sortSig('weeklyTrend')">Weekly</th><th onclick="sortSig('band_30')">30d</th>
@@ -2959,7 +2980,11 @@ function applyFilters(){
     const wkCls=s.weeklyAligned?'b-bull':s.weeklyTrend==='bear'?'b-bear':'b-dim';
     const concBadge=`<span class="b ${wkCls}">${(s.weeklyTrend||'neut').toUpperCase()}</span>`;
     const scoreCls2=s.score>=thr2?'c-bull':s.score>=(thr2-15)?'c-amb':'c-dim';
-    return`<tr class="${sigClass(s.signal)}${s.earn_prox?' earn':''}">
+    const isBulkBuy=s.signal.startsWith('B');
+    const bulkDir=isBulkBuy?'BUY':'SELL';
+    const isChecked=bulkSelected.some(x=>x.symbol===s.symbol);
+    return`<tr class="${sigClass(s.signal)}${s.earn_prox?' earn':''}" id="sigRow_${s.symbol}">
+      <td style="text-align:center;padding:2px 4px"><input type="checkbox" class="bulk-chk" data-symbol="${s.symbol}" data-dir="${bulkDir}" data-score="${s.score}" data-cmp="${s.cmp}" data-tp="${s.tp}" data-sl="${s.sl}" data-align="${s.regime_alignment||'neutral'}" onchange="bulkToggle(this)" style="cursor:pointer;accent-color:${isBulkBuy?'var(--bull)':'var(--bear)'}" ${isChecked?'checked':''}></td>
       <td><strong>${s.symbol}</strong> ${atrViaBadge(s.symbol)}</td><td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.sector}</td>
       <td>${sigBadge(s.signal)}</td><td><strong class="${scoreCls2}">${s.score}</strong></td>
       <td>${concBadge}</td>
@@ -2974,7 +2999,7 @@ function applyFilters(){
       <td>${earn}</td>
       <td><button class="${s.signal.startsWith('B')?'ob-buy':'ob-sell'}" onclick="showOrderModal('${s.symbol}','${s.signal.startsWith('B')?'BUY':'SELL'}',${s.cmp},${s.tp},${s.sl},1)">${s.signal.startsWith('B')?'▲ BUY':'▼ SELL'}</button></td>
     </tr>`;
-  }).join('')||(sigFiltered.length===0?'<tr><td colspan="19" class="empty">No signals match filters</td></tr>':'');
+  }).join('')||(sigFiltered.length===0?'<tr><td colspan="20" class="empty">No signals match filters</td></tr>':'');
 }
 function sortSig(col){if(sigSortCol===col)sigSortDir*=-1;else{sigSortCol=col;sigSortDir=-1}renderSigTable()}
 function clearFilters(){['fSig','fSec','fIdx','fBand'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});const fs=document.getElementById('fSearch');if(fs)fs.value='';renderSigTable()}
@@ -5153,36 +5178,345 @@ function toggleTheme(){const isDark=document.body.classList.toggle('dark');local
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 
 // ═══════════════════════════════════════════════════════════
-// COLLAPSIBLE SECTIONS — 1% Ready + Pre-Breakout/Breakout
+// BULK ORDER ENGINE
+// Completely separate from single-order modal — does not
+// touch showOrderModal or confirmPlaceOrder at all.
+// Uses same tiered sizing + GTT logic independently.
 // ═══════════════════════════════════════════════════════════
-const _collapseState = {
-  onepc: localStorage.getItem('collapse_onepc') === 'true',
-  pbo:   localStorage.getItem('collapse_pbo')   === 'true',
-};
-function toggleSection(id) {
-  _collapseState[id] = !_collapseState[id];
-  localStorage.setItem('collapse_' + id, _collapseState[id]);
-  _applySectionCollapse(id);
+
+let bulkSelected = [];   // [{symbol, dir, score, cmp, tp, sl, align, invest}]
+let _bulkFiring  = false;
+
+/* ── Tiered invest amount (mirrors Change 1 logic) ── */
+function bulkGetInvest(score) {
+  if (overallRegime === 'bear') return 20000;
+  if (score >= 80) return 40000;
+  if (score >= 65) return 33000;
+  return 20000;
 }
-function _applySectionCollapse(id) {
-  const collapsed = _collapseState[id];
-  if (id === 'onepc') {
-    const wrap  = document.getElementById('onepcBody_wrap');
-    const arrow = document.getElementById('onepcArrow');
-    if (wrap)  wrap.style.display  = collapsed ? 'none' : '';
-    if (arrow) arrow.textContent   = collapsed ? '▶' : '▼';
-  } else if (id === 'pbo') {
-    const wrap  = document.getElementById('pboBrkGridWrap');
-    const arrow = document.getElementById('pboArrow');
-    if (wrap)  wrap.style.display  = collapsed ? 'none' : '';
-    if (arrow) arrow.textContent   = collapsed ? '▶' : '▼';
+
+/* ── GTT TP% for a stock (mirrors Change 2 logic) ── */
+function bulkGetTpPct(symbol, score, align) {
+  const adaptive = bt5mGetAdaptive ? bt5mGetAdaptive(symbol) : null;
+  if (adaptive && adaptive.tp) return adaptive.tp;
+  const isHighConv = score >= 80 && (align === 'aligned' || align === 'partial');
+  return isHighConv ? 2.0 : 1.3;
+}
+function bulkGetSlPct(symbol) {
+  const adaptive = bt5mGetAdaptive ? bt5mGetAdaptive(symbol) : null;
+  return (adaptive && adaptive.sl) ? adaptive.sl : 2.5;
+}
+
+/* ── Toggle a single checkbox ── */
+function bulkToggle(chk) {
+  const sym   = chk.dataset.symbol;
+  const dir   = chk.dataset.dir;
+  const score = parseFloat(chk.dataset.score) || 0;
+  const cmp   = parseFloat(chk.dataset.cmp)   || 0;
+  const tp    = parseFloat(chk.dataset.tp)    || 0;
+  const sl    = parseFloat(chk.dataset.sl)    || 0;
+  const align = chk.dataset.align || 'neutral';
+
+  if (chk.checked) {
+    /* Direction guard — hard block mixing BUY + SELL */
+    if (bulkSelected.length > 0 && bulkSelected[0].dir !== dir) {
+      chk.checked = false;
+      toast(`⛔ Direction mismatch — basket is ${bulkSelected[0].dir} only. Clear first to switch direction.`, 'err');
+      return;
+    }
+    const invest = bulkGetInvest(score);
+    bulkSelected.push({ symbol: sym, dir, score, cmp, tp, sl, align, invest });
+  } else {
+    bulkSelected = bulkSelected.filter(x => x.symbol !== sym);
+  }
+  bulkRenderBar();
+}
+
+/* ── Select All / Deselect All visible rows ── */
+function bulkToggleAll(checked) {
+  if (!checked) {
+    /* Deselect all */
+    bulkSelected = [];
+    document.querySelectorAll('.bulk-chk').forEach(c => c.checked = false);
+    bulkRenderBar();
+    return;
+  }
+  /* Select all visible — check direction consistency first */
+  const chks = Array.from(document.querySelectorAll('.bulk-chk'));
+  if (!chks.length) return;
+  const firstDir = chks[0].dataset.dir;
+  const allSameDir = chks.every(c => c.dataset.dir === firstDir);
+  if (!allSameDir) {
+    toast('⛔ Mixed BUY/SELL signals visible — filter to one direction before selecting all', 'err');
+    document.getElementById('bulkSelectAll').checked = false;
+    return;
+  }
+  bulkSelected = [];
+  chks.forEach(chk => {
+    chk.checked = true;
+    const score  = parseFloat(chk.dataset.score) || 0;
+    bulkSelected.push({
+      symbol:  chk.dataset.symbol,
+      dir:     chk.dataset.dir,
+      score,
+      cmp:     parseFloat(chk.dataset.cmp)   || 0,
+      tp:      parseFloat(chk.dataset.tp)    || 0,
+      sl:      parseFloat(chk.dataset.sl)    || 0,
+      align:   chk.dataset.align || 'neutral',
+      invest:  bulkGetInvest(score),
+    });
+  });
+  bulkRenderBar();
+}
+
+/* ── Clear all selections ── */
+function bulkClearAll() {
+  bulkSelected = [];
+  document.querySelectorAll('.bulk-chk').forEach(c => c.checked = false);
+  const sa = document.getElementById('bulkSelectAll');
+  if (sa) sa.checked = false;
+  bulkRenderBar();
+  /* Reset progress */
+  const prog = document.getElementById('bulkProgress');
+  if (prog) prog.style.display = 'none';
+}
+
+/* ── Render / update the bottom bar ── */
+function bulkRenderBar() {
+  const bar     = document.getElementById('bulkBar');
+  const spacer  = document.getElementById('bulkBarSpacer');
+  if (!bar) return;
+
+  if (!bulkSelected.length) {
+    bar.style.display    = 'none';
+    if (spacer) spacer.style.display = 'none';
+    return;
+  }
+
+  bar.style.display    = 'flex';
+  if (spacer) spacer.style.display = 'block';
+
+  const dir      = bulkSelected[0].dir;
+  const total    = bulkSelected.reduce((s, x) => s + x.invest, 0);
+  const isBuy    = dir === 'BUY';
+
+  /* Count label */
+  document.getElementById('bulkCount').textContent = bulkSelected.length + ' selected';
+
+  /* Direction badge */
+  const badge = document.getElementById('bulkDirBadge');
+  badge.textContent  = isBuy ? '▲ BUY BATCH' : '▼ SELL BATCH';
+  badge.style.background = isBuy ? 'rgba(5,150,105,.2)' : 'rgba(220,38,38,.2)';
+  badge.style.color      = isBuy ? 'var(--bull)' : 'var(--bear)';
+
+  /* Fire button color */
+  const fireBtn = document.getElementById('bulkFireBtn');
+  if (fireBtn) {
+    fireBtn.style.background = isBuy ? 'var(--bull)' : 'var(--bear)';
+    fireBtn.textContent = `🚀 Place All ${bulkSelected.length} Orders + GTTs`;
+  }
+
+  /* Stock chips */
+  const chips = document.getElementById('bulkChips');
+  chips.innerHTML = bulkSelected.map(x => {
+    const tierCol = x.score >= 80 ? '#059669' : x.score >= 65 ? '#d97706' : '#dc2626';
+    const tierAmt = x.invest >= 40000 ? '40k' : x.invest >= 33000 ? '33k' : '20k';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;white-space:nowrap;font-size:8px">
+      <span style="font-weight:800;color:var(--bright)">${x.symbol}</span>
+      <span style="color:${tierCol};font-weight:700">₹${tierAmt}</span>
+      <span onclick="bulkRemoveOne('${x.symbol}')" style="color:var(--text3);cursor:pointer;font-size:10px;margin-left:2px" title="Remove">×</span>
+    </span>`;
+  }).join('');
+
+  /* Total */
+  document.getElementById('bulkTotal').textContent = '₹' + total.toLocaleString('en-IN');
+
+  /* Regime cap warning */
+  const capEl = document.getElementById('bulkCapWarn');
+  if (capEl) {
+    const CAPS = { full:20, mixed:12, caution:6, bear:3 };
+    const cap  = CAPS[overallRegime] || 12;
+    const open = (_brokerData.holdings || []).length;
+    const after = open + bulkSelected.length;
+    if (after > cap) {
+      capEl.style.display = 'block';
+      capEl.innerHTML = `⚠ ${open} open + ${bulkSelected.length} new = ${after} positions · ${(overallRegime||'').toUpperCase()} cap = ${cap}`;
+    } else {
+      capEl.style.display = 'none';
+    }
   }
 }
-/* Apply saved state on load */
-document.addEventListener('DOMContentLoaded', () => {
-  _applySectionCollapse('onepc');
-  _applySectionCollapse('pbo');
-});
+
+/* ── Remove one stock from basket ── */
+function bulkRemoveOne(symbol) {
+  bulkSelected = bulkSelected.filter(x => x.symbol !== symbol);
+  const chk = document.querySelector(`.bulk-chk[data-symbol="${symbol}"]`);
+  if (chk) chk.checked = false;
+  const sa = document.getElementById('bulkSelectAll');
+  if (sa) sa.checked = false;
+  bulkRenderBar();
+}
+
+/* ── Place all orders sequentially ── */
+async function bulkPlaceAllOrders() {
+  if (_bulkFiring) return;
+  if (!bulkSelected.length) return;
+  if (!zdLiveMode) { toast('Connect Zerodha Kite first', 'err'); return; }
+
+  const total = bulkSelected.length;
+  const dir   = bulkSelected[0].dir;
+  const isBuy = dir === 'BUY';
+
+  if (!confirm(`Place ${total} ${dir} orders with auto GTTs?\n\nTotal capital: ₹${bulkSelected.reduce((s,x)=>s+x.invest,0).toLocaleString('en-IN')}\n\nThis places REAL orders on your Zerodha account.`)) return;
+
+  _bulkFiring = true;
+  const fireBtn = document.getElementById('bulkFireBtn');
+  if (fireBtn) { fireBtn.disabled = true; fireBtn.textContent = '⏳ Placing…'; }
+
+  /* Show progress */
+  const prog      = document.getElementById('bulkProgress');
+  const progLabel = document.getElementById('bulkProgressLabel');
+  const progCount = document.getElementById('bulkProgressCount');
+  const progBar   = document.getElementById('bulkProgressBar');
+  if (prog) prog.style.display = 'block';
+
+  let placed = 0, failed = 0;
+
+  for (let i = 0; i < bulkSelected.length; i++) {
+    const stock = bulkSelected[i];
+    const sym   = stock.symbol;
+    const cmp   = stock.cmp;
+    const invest = stock.invest;
+    const qty   = cmp > 0 ? Math.max(1, Math.floor(invest / cmp)) : 1;
+    const entryPx = parseFloat(cmp.toFixed(2));
+
+    /* Update progress UI */
+    if (progLabel) progLabel.textContent = `Placing ${sym} (${i+1} of ${total})…`;
+    if (progCount) progCount.textContent = `${placed} done · ${failed} failed`;
+    if (progBar)   progBar.style.width   = Math.round((i / total) * 100) + '%';
+
+    const rowEl = document.getElementById('sigRow_' + sym);
+
+    try {
+      /* ── 1. Place LIMIT order ── */
+      const orderBody = {
+        tradingsymbol: sym + '-EQ',
+        exchange:      'NSE',
+        transaction_type: dir,
+        order_type:    'LIMIT',
+        quantity:      qty,
+        price:         entryPx,
+        product:       'CNC',
+        validity:      'DAY',
+        tag:           'NANDI_BULK',
+      };
+
+      const oRes = await fetch(`${ZD_WORKER}/kite/orders/regular`, {
+        method:  'POST',
+        headers: { 'Content-Type':'application/json', 'X-Kite-Version':'3', 'Authorization':`token ${zdApiKey}:${zdToken}` },
+        body:    JSON.stringify(orderBody),
+      });
+      const oJson = await oRes.json();
+
+      if (oJson.status !== 'success') throw new Error(oJson.message || 'Order failed');
+      const orderId = oJson.data?.order_id;
+
+      /* ── 2. GTT TP + SL (only for BUY limit orders, same as single order) ── */
+      if (isBuy && entryPx > 0) {
+        const tpPct = bulkGetTpPct(sym, stock.score, stock.align);
+        const slPct = bulkGetSlPct(sym);
+        const tpPx  = parseFloat((entryPx * (1 + tpPct / 100)).toFixed(2));
+        const slPx  = parseFloat((entryPx * (1 - slPct / 100)).toFixed(2));
+        const gapDn = parseFloat((entryPx * 0.94).toFixed(2));
+
+        /* GTT1: TP + SL two-leg */
+        const gtt1Body = {
+          type: 'two-leg',
+          condition: { exchange:'NSE', tradingsymbol:sym+'-EQ', trigger_values:[slPx, tpPx], last_price:entryPx },
+          orders: [
+            { exchange:'NSE', tradingsymbol:sym+'-EQ', transaction_type:'SELL', quantity:qty, order_type:'LIMIT', product:'CNC', price:slPx },
+            { exchange:'NSE', tradingsymbol:sym+'-EQ', transaction_type:'SELL', quantity:qty, order_type:'LIMIT', product:'CNC', price:tpPx },
+          ],
+        };
+        /* GTT2: gap-down protection */
+        const gtt2Body = {
+          type: 'single',
+          condition: { exchange:'NSE', tradingsymbol:sym+'-EQ', trigger_values:[gapDn], last_price:entryPx },
+          orders: [
+            { exchange:'NSE', tradingsymbol:sym+'-EQ', transaction_type:'SELL', quantity:qty, order_type:'MARKET', product:'CNC', price:0 },
+          ],
+        };
+        /* Fire GTTs — don't await sequentially, fire both then continue */
+        await Promise.allSettled([
+          fetch(`${ZD_WORKER}/kite/gtt/triggers`, { method:'POST', headers:{'Content-Type':'application/json','X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}, body:JSON.stringify(gtt1Body) }),
+          fetch(`${ZD_WORKER}/kite/gtt/triggers`, { method:'POST', headers:{'Content-Type':'application/json','X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}, body:JSON.stringify(gtt2Body) }),
+        ]);
+      }
+
+      /* ── 3. Log to pnlHistory (same as single order) ── */
+      try {
+        const logEntry = { id: Date.now() + i, sym, dir, date: new Date().toISOString().slice(0,10), time: new Date().toTimeString().slice(0,5), qty, entry_price: entryPx, orderType:'LIMIT', tp_price: isBuy ? parseFloat((entryPx*(1+bulkGetTpPct(sym,stock.score,stock.align)/100)).toFixed(2)) : null, sl_price: isBuy ? parseFloat((entryPx*(1-bulkGetSlPct(sym)/100)).toFixed(2)) : null, status:'OPEN', tag:'BULK' };
+        pnlHistory.push(logEntry);
+        saveLedger(pnlHistory);
+      } catch(le) {}
+
+      /* ── 4. Mark row green ── */
+      placed++;
+      if (rowEl) {
+        rowEl.style.background   = 'rgba(5,150,105,.18)';
+        rowEl.style.outline      = '1px solid var(--bull)';
+        rowEl.title              = `✓ Order placed (ID: ${orderId}) · Qty ${qty} · ₹${invest.toLocaleString('en-IN')}`;
+        const chk = rowEl.querySelector('.bulk-chk');
+        if (chk) { chk.checked = false; chk.disabled = true; }
+      }
+
+    } catch(err) {
+      /* ── Mark row red ── */
+      failed++;
+      if (rowEl) {
+        rowEl.style.background = 'rgba(220,38,38,.15)';
+        rowEl.style.outline    = '1px solid var(--bear)';
+        rowEl.title            = `✗ Failed: ${err.message}`;
+      }
+      console.error(`[Bulk] ${sym} failed:`, err.message);
+    }
+
+    /* Update progress count */
+    if (progCount) progCount.textContent = `${placed} placed · ${failed} failed`;
+    if (progBar)   progBar.style.width   = Math.round(((i+1) / total) * 100) + '%';
+    if (progBar)   progBar.style.background = failed > 0 ? 'var(--amber)' : 'var(--bull)';
+
+    /* Rate limit gap between orders */
+    if (i < bulkSelected.length - 1) await sleep(600);
+  }
+
+  /* ── Final summary ── */
+  _bulkFiring = false;
+  if (progLabel) progLabel.textContent = `Done — ${placed}/${total} placed · ${failed} failed`;
+  if (progBar)   progBar.style.width   = '100%';
+  if (fireBtn)   { fireBtn.disabled = false; fireBtn.textContent = `✓ ${placed}/${total} Placed`; }
+
+  toast(`Bulk complete: ${placed}/${total} orders placed${failed ? ' · ' + failed + ' failed (see table)' : ' ✓'}`, placed === total ? 'ok' : 'err');
+
+  /* Remove placed stocks from basket, keep failed ones */
+  bulkSelected = bulkSelected.filter(x => {
+    const row = document.getElementById('sigRow_' + x.symbol);
+    return row && row.style.background.includes('220,38,38');
+  });
+
+  /* Auto-clear bar after 6s if all succeeded */
+  if (failed === 0) {
+    setTimeout(() => {
+      bulkClearAll();
+      if (prog) prog.style.display = 'none';
+    }, 6000);
+  } else {
+    /* Re-enable fire button for retry of failed ones */
+    if (fireBtn) { fireBtn.disabled = false; fireBtn.textContent = `🔄 Retry ${failed} Failed`; }
+    bulkRenderBar();
+  }
+}
+// ═══ END BULK ORDER ENGINE ═══
 
 // ═══════════════════════════════════════════════════════════
 // ORDER PLACEMENT — modal helpers
@@ -5191,32 +5525,8 @@ const TRADING_CAPITAL=500000;let _omDirection='BUY';
 function showOrderModal(symbol,direction,cmp,tp,sl,qty){
   if(!zdLiveMode){toast('Connect Zerodha Kite first','err');return}
   _omDirection=direction;window._omCmp=cmp;
-  /* ── CHANGE 1: Tiered sizing by signal score ── */
-  const _sigObj = allSignals.find(s => s.symbol === symbol);
-  const _sigScore = (_sigObj && _sigObj.score) || 0;
-  const _sigAlign = (_sigObj && _sigObj.regime_alignment) || 'neutral';
-  let defaultInvest;
-  if (overallRegime === 'bear') {
-    defaultInvest = 20000;
-  } else if (_sigScore >= 80) {
-    defaultInvest = 40000;
-  } else if (_sigScore >= 65) {
-    defaultInvest = 33000;
-  } else {
-    defaultInvest = 20000;
-  }
-  const autoQty = cmp > 0 ? Math.max(1, Math.floor(defaultInvest / cmp)) : (qty || 1);
-  /* Tier label for display */
-  const _tierLabel = overallRegime === 'bear'
-    ? '🔴 Bear regime → ₹20,000'
-    : _sigScore >= 80
-      ? '🟢 HIGH score (' + _sigScore + ') → ₹40,000'
-      : _sigScore >= 65
-        ? '🟡 MED score (' + _sigScore + ') → ₹33,000'
-        : '🔴 LOW score (' + (_sigScore||'—') + ') → ₹20,000';
-  const kd = kellyData[symbol];
-  const _kellyStr = kd && kd.kelly_pct > 0 ? ` · Kelly ${kd.kelly_pct}%=₹${Math.round(TRADING_CAPITAL*kd.kelly_pct/100).toLocaleString('en-IN')}` : '';
-  const kellyNote = _tierLabel + _kellyStr;
+  const defaultInvest=overallRegime==='full'?33000:overallRegime==='bear'?23000:30000,autoQty=cmp>0?Math.max(1,Math.floor(defaultInvest/cmp)):(qty||1);
+  const kd=kellyData[symbol],kellyNote=kd&&kd.kelly_pct>0?`Kelly ${kd.kelly_pct}% of ₹5L = ₹${Math.round(TRADING_CAPITAL*kd.kelly_pct/100).toLocaleString('en-IN')}`:'No Kelly data yet';
   document.getElementById('omSymbol').textContent=symbol;document.getElementById('omCmp').textContent='₹'+cmp.toFixed(2);
   document.getElementById('omTp').textContent=tp?'₹'+tp.toFixed(2):'—';document.getElementById('omSl').textContent=sl?'₹'+sl.toFixed(2):'—';
   /* ATR viability info in modal */
@@ -5234,54 +5544,12 @@ function showOrderModal(symbol,direction,cmp,tp,sl,qty){
   const liveCmp=zdPrices[symbol]||zdPrices['NSE:'+symbol]||cmp;
   document.getElementById('omPrice').value=liveCmp.toFixed(2);document.getElementById('omOrderType').value='LIMIT';document.getElementById('omProduct').value='CNC';
   document.getElementById('omPriceWrap').style.opacity='1';document.getElementById('omPrice').disabled=false;
-  const kellyEl=document.getElementById('omKellyNote');
-  if(kellyEl){
-    kellyEl.textContent=kellyNote;
-    kellyEl.style.color = overallRegime==='bear'||_sigScore<65 ? 'var(--bear)' : _sigScore>=80 ? 'var(--bull)' : 'var(--amber)';
-  }
+  const kellyEl=document.getElementById('omKellyNote');if(kellyEl)kellyEl.textContent=kellyNote;
   const badge=document.getElementById('omDirBadge'),btn=document.getElementById('omConfirmBtn');btn.disabled=false;
   if(direction==='BUY'){badge.innerHTML='<span class="b b-bull" style="font-size:10px;padding:2px 8px">▲ BUY</span>';btn.className='btn-order-buy';btn.textContent='Place BUY Order'}
   else{badge.innerHTML='<span class="b b-bear" style="font-size:10px;padding:2px 8px">▼ SELL</span>';btn.className='btn-order-sell';btn.textContent='Place SELL Order'}
   const res=document.getElementById('omResult');res.style.display='none';res.innerHTML='';
   const gttPrev=document.getElementById('omGttPreview');if(gttPrev)gttPrev.style.display='block';
-
-  /* ── CHANGE 3: Stale position warning (≥7 calendar days held) ── */
-  const _staleEl = document.getElementById('omStaleWarn');
-  if (_staleEl) {
-    const _hld = (_brokerData.holdings||[]).find(h =>
-      h.tradingsymbol === symbol || h.tradingsymbol === symbol+'-EQ');
-    if (_hld && pnlHistory.length) {
-      const _buys = pnlHistory.filter(h => h.sym === symbol && h.dir === 'BUY')
-                               .sort((a,b) => a.date.localeCompare(b.date));
-      if (_buys.length) {
-        const _buyDate = new Date(_buys[_buys.length-1].date);
-        const _heldDays = Math.round((new Date() - _buyDate) / 86400000);
-        if (_heldDays >= 7) {
-          const _pnlPct = _hld.average_price > 0
-            ? ((_hld.last_price - _hld.average_price) / _hld.average_price * 100).toFixed(2)
-            : null;
-          _staleEl.style.display = 'block';
-          _staleEl.innerHTML = `⚠ STALE HOLD: Already holding ${_hld.quantity} shares for <strong>${_heldDays} days</strong> @ ₹${_hld.average_price?.toFixed(2)} · Now ₹${_hld.last_price?.toFixed(2)}${_pnlPct!==null?' ('+(_pnlPct>=0?'+':'')+_pnlPct+'%)':''} · Consider exiting before re-entering`;
-        } else { _staleEl.style.display = 'none'; }
-      } else { _staleEl.style.display = 'none'; }
-    } else { _staleEl.style.display = 'none'; }
-  }
-
-  /* ── CHANGE 4: Regime position cap — soft warning banner ── */
-  const _capEl = document.getElementById('omCapWarn');
-  if (_capEl) {
-    const _CAPS = { full:20, mixed:12, caution:6, bear:3 };
-    const _cap = _CAPS[overallRegime] || 12;
-    const _openCount = (_brokerData.holdings||[]).length;
-    if (_openCount >= _cap) {
-      _capEl.style.display = 'block';
-      _capEl.innerHTML = `⚠ POSITION CAP: ${_openCount} open holdings · ${(overallRegime||'').toUpperCase()} regime limit = <strong>${_cap}</strong> · You're at or over the limit — consider closing a position first`;
-    } else if (_openCount >= _cap - 2) {
-      _capEl.style.display = 'block';
-      _capEl.innerHTML = `⚡ NEAR CAP: ${_openCount}/${_cap} positions · ${(overallRegime||'').toUpperCase()} regime · ${_cap - _openCount} slot(s) remaining`;
-    } else { _capEl.style.display = 'none'; }
-  }
-
   updateOmTotal();document.getElementById('orderModal').style.display='flex';
 }
 function updateOmTotal(){
@@ -5296,18 +5564,14 @@ function updateOmTotal(){
     if(ot==='LIMIT'&&price>0){
       const sym=document.getElementById('omSymbol').textContent||'';
       const adaptive=bt5mGetAdaptive(sym);
-      /* Check for high-conviction wider TP */
-      const _sigPrev = allSignals.find(s => s.symbol === sym);
-      const _isHC = !adaptive && _sigPrev && _sigPrev.score >= 80 &&
-        (_sigPrev.regime_alignment === 'aligned' || _sigPrev.regime_alignment === 'partial');
-      const tpMult = adaptive ? (isBuy ? 1+adaptive.tp/100 : 1-adaptive.tp/100) : (isBuy ? 1+(_isHC?2.0:1.3)/100 : 1-(_isHC?2.0:1.3)/100);
+      const tpMult = adaptive ? (isBuy ? 1+adaptive.tp/100 : 1-adaptive.tp/100) : (isBuy?1.013:0.987);
       const slMult = adaptive ? (isBuy ? 1-adaptive.sl/100 : 1+adaptive.sl/100) : (isBuy?0.975:1.025);
       const tp=price*tpMult, sl=price*slMult;
-      const tpLabel = adaptive ? '+'+adaptive.tp+'%' : (_isHC ? '+2.0% 🔥' : '+1.3%');
+      const tpLabel = adaptive ? '+'+adaptive.tp+'%' : '+1.3%';
       const slLabel = adaptive ? '-'+adaptive.sl+'%' : '-2.5%';
       const adaptNote = adaptive
         ? ` <span style="color:var(--kite);font-size:7px">🧠 Adaptive (${adaptive.trades} trades, WR ${adaptive.wr}%)</span>`
-        : (_isHC ? ` <span style="color:var(--bull);font-size:7px">🔥 High conviction — wider TP applied</span>` : '');
+        : '';
       gttEl.innerHTML=`GTT1: TP ₹<strong>${tp.toFixed(2)}</strong> (${tpLabel}) | SL ₹<strong>${sl.toFixed(2)}</strong> (${slLabel})${isBuy?` &nbsp;|&nbsp; GTT2: Gap-DN SL ₹<strong>${(price*0.94).toFixed(2)}</strong> (-6%)`:''}${adaptNote}`;
       document.getElementById('omGttPreview').style.display='block';
     }else{
@@ -5347,18 +5611,12 @@ async function confirmPlaceOrder(){
         const entryPx=price,isBuy=_omDirection==='BUY';
         const sym2=document.getElementById('omSymbol').textContent||'';
         const adaptive2=bt5mGetAdaptive(sym2);
-        /* ── CHANGE 2: Wider TP for score≥80 + aligned/partial regime ── */
-        const _sigC = allSignals.find(s => s.symbol === sym2);
-        const _isHighConv = _sigC && _sigC.score >= 80 &&
-          (_sigC.regime_alignment === 'aligned' || _sigC.regime_alignment === 'partial');
-        const _baseTp = adaptive2 ? adaptive2.tp : (_isHighConv ? 2.0 : 1.3);
-        const _baseSl = adaptive2 ? adaptive2.sl : 2.5;
         const tpPx=isBuy
-          ? parseFloat((entryPx*(1+_baseTp/100)).toFixed(2))
-          : parseFloat((entryPx*(1-_baseTp/100)).toFixed(2));
+          ? parseFloat((entryPx*(1+(adaptive2?adaptive2.tp:1.3)/100)).toFixed(2))
+          : parseFloat((entryPx*(1-(adaptive2?adaptive2.tp:1.3)/100)).toFixed(2));
         const slPx=isBuy
-          ? parseFloat((entryPx*(1-_baseSl/100)).toFixed(2))
-          : parseFloat((entryPx*(1+_baseSl/100)).toFixed(2));
+          ? parseFloat((entryPx*(1-(adaptive2?adaptive2.sl:2.5)/100)).toFixed(2))
+          : parseFloat((entryPx*(1+(adaptive2?adaptive2.sl:2.5)/100)).toFixed(2));
         const gdSlPx=isBuy?parseFloat((entryPx*0.94).toFixed(2)):null; // gap-down -6% only for BUY positions
         setTimeout(()=>placeGTT(sym,qty,entryPx,tpPx,slPx,isBuy?'SELL':'BUY',product,el,logId,gdSlPx),1500);
       }
