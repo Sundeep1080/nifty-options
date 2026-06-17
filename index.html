@@ -711,6 +711,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
         <span style="font-size:11px;font-weight:900;color:var(--kite)">🎯 1% Ready</span>
         <span style="font-size:8px;color:var(--text3)">Stocks with highest probability of 1% move today · Score ≥70 = Prime</span>
         <span id="onepcCount" style="font-size:8px;color:var(--text3)"></span>
+        <button onclick="event.stopPropagation();exportOnepcCSV()" style="font-family:var(--mono);font-size:7px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer">⬇ CSV</button>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">Updates every 30s · ATR + Level + Signal + Volume + Sector</span>
       </div>
       <div id="onepcBody_wrap" style="overflow-x:auto;max-height:320px;overflow-y:auto">
@@ -753,6 +754,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
         <span style="font-size:10px;font-weight:800;color:var(--amber)">🎯 Pre-Breakout</span>
         <span style="font-size:8px;font-weight:700;color:var(--bull)">BUY</span>
         <span id="pboBuyCount" style="font-size:8px;color:var(--text3)"></span>
+        <button onclick="exportPboCSV('buy')" style="font-family:var(--mono);font-size:7px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer">⬇ CSV</button>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">0–1% from resistance</span>
       </div>
       <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
@@ -777,6 +779,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
         <span style="font-size:10px;font-weight:800;color:var(--bear)">🎯 Pre-Breakout</span>
         <span style="font-size:8px;font-weight:700;color:var(--bear)">SELL</span>
         <span id="pboSellCount" style="font-size:8px;color:var(--text3)"></span>
+        <button onclick="exportPboCSV('sell')" style="font-family:var(--mono);font-size:7px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer">⬇ CSV</button>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">0–1% from support</span>
       </div>
       <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
@@ -801,6 +804,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
         <span style="font-size:10px;font-weight:800;color:var(--bull)">⚡ Breakout</span>
         <span style="font-size:8px;font-weight:700;color:var(--bull)">BUY</span>
         <span id="brkBuyCount2" style="font-size:8px;color:var(--text3)"></span>
+        <button onclick="exportBrkGridCSV('buy')" style="font-family:var(--mono);font-size:7px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer">⬇ CSV</button>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">Crossed resistance · Newest first</span>
       </div>
       <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
@@ -828,6 +832,7 @@ tr.earn td:first-child{border-left:3px solid var(--pink)}
         <span style="font-size:10px;font-weight:800;color:var(--bear)">⚡ Breakout</span>
         <span style="font-size:8px;font-weight:700;color:var(--bear)">SELL</span>
         <span id="brkSellCount2" style="font-size:8px;color:var(--text3)"></span>
+        <button onclick="exportBrkGridCSV('sell')" style="font-family:var(--mono);font-size:7px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;cursor:pointer">⬇ CSV</button>
         <span style="font-size:7px;color:var(--text3);margin-left:auto">Broke support · Newest first</span>
       </div>
       <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
@@ -5549,6 +5554,17 @@ function bulkOrderClear(side) {
   bulkOrderUpdateBtn(side);
 }
 
+function bulkGetLiveCmp(sym, fallbackCmp) {
+  var cell = document.getElementById('ltpCell_'+sym);
+  if (cell) {
+    var t = parseFloat((cell.textContent||'').replace('₹','').replace(/,/g,''))||0;
+    if (t>0) return t;
+  }
+  var zp = zdPrices[sym]||zdPrices['NSE:'+sym]||0;
+  if (zp>0) return zp;
+  return fallbackCmp||0;
+}
+
 function openBulkOrderModal(side) {
   if (!zdLiveMode) { toast('Connect Zerodha Kite first','err'); return; }
   var sel = _bulkSel[side], syms = Object.keys(sel);
@@ -5559,22 +5575,22 @@ function openBulkOrderModal(side) {
     ? '<span class="b b-bull" style="font-size:10px;padding:2px 8px">▲ BULK BUY</span>'
     : '<span class="b b-bear" style="font-size:10px;padding:2px 8px">▼ BULK SELL</span>';
   var rowsHtml = syms.map(function(sym){
-    var s = sel[sym], cmp = s.cmp||0, score = s.score||0, defaultInvest;
+    var s = sel[sym], score = s.score||0, defaultInvest;
+    var cmp = bulkGetLiveCmp(sym, s.cmp||0);
     if (overallRegime==='bear') defaultInvest = 20000;
     else if (score>=80) defaultInvest = 40000;
     else if (score>=65) defaultInvest = 33000;
     else defaultInvest = 20000;
     var autoQty = cmp>0 ? Math.max(1,Math.floor(defaultInvest/cmp)) : 1;
-    var liveCmp = zdPrices[sym]||zdPrices['NSE:'+sym]||cmp;
     return `<tr data-sym="${sym}" data-cmp="${cmp}">
       <td style="text-align:left"><strong>${sym}</strong></td>
-      <td class="c-dim">₹${cmp.toFixed(2)}</td>
+      <td class="${cmp>0?'c-dim':'c-bear'}">${cmp>0?'₹'+cmp.toFixed(2):'⚠ no price'}</td>
       <td><input type="number" id="bo_inv_${sym}" class="om-inp bulk-row-inp" value="${defaultInvest}" step="1000" oninput="bulkRecalcQty('${sym}')" style="padding:5px 6px;font-size:11px"></td>
       <td><input type="number" id="bo_qty_${sym}" class="om-inp bulk-row-inp" value="${autoQty}" min="1" oninput="bulkUpdateTotals()" style="padding:5px 6px;font-size:11px"></td>
       <td><select id="bo_ot_${sym}" class="om-sel" style="font-size:10px;padding:5px 4px;width:100%" onchange="bulkOrderTogglePrice('${sym}')">
         <option value="LIMIT" selected>LIMIT</option><option value="MARKET">MARKET</option><option value="SL-M">SL-M</option>
       </select></td>
-      <td><input type="number" id="bo_price_${sym}" class="om-inp bulk-row-inp" value="${liveCmp.toFixed(2)}" step="0.05" oninput="bulkUpdateTotals()" style="padding:5px 6px;font-size:11px"></td>
+      <td><input type="number" id="bo_price_${sym}" class="om-inp bulk-row-inp" value="${cmp.toFixed(2)}" step="0.05" oninput="bulkUpdateTotals()" style="padding:5px 6px;font-size:11px"></td>
       <td><select id="bo_prod_${sym}" class="om-sel" style="font-size:10px;padding:5px 4px;width:100%">
         <option value="CNC" selected>CNC</option><option value="MIS">MIS</option>
       </select></td>
@@ -6667,7 +6683,7 @@ function renderDailyMovers(){
     return`<tr><td class="c-dim">${i+1}</td><td><strong>${m.sym}</strong></td><td style="font-size:8px;max-width:80px;overflow:hidden;text-overflow:ellipsis">${m.sector}</td><td class="c-dim">₹${m.prevClose.toFixed(2)}</td><td>₹${m.latestClose.toFixed(2)}</td><td class="${todayCls}">${m.todayPct>=0?'+':''}${m.todayPct.toFixed(2)}%</td><td class="${retCls}"><strong>${m.avgRet>=0?'+':''}${m.avgRet.toFixed(2)}%</strong></td><td>${consBadge}</td><td class="${retCls}">${m.daysAbove}/${m.lookback}</td><td>${sigDisp}</td><td>${smiDisp}</td><td>${m.pfStatus}</td></tr>`;
   }).join('');
 }
-function exportDailyMoversCSV(){const rows=['Symbol,Sector,PrevClose,LatestClose,TodayPct,AvgPctPerDay,Consistency,Signal,SMI,InPortfolio'];document.querySelectorAll('#dmBody tr').forEach((tr)=>{const cells=[...tr.querySelectorAll('td')];if(cells.length<11)return;rows.push([cells[1].textContent.trim(),cells[2].textContent.trim(),cells[3].textContent.replace('₹','').trim(),cells[4].textContent.replace('₹','').trim(),cells[5].textContent.trim(),cells[6].textContent.trim(),cells[7].textContent.trim(),cells[9].textContent.trim(),cells[10].textContent.trim(),cells[11].textContent.trim()].join(','))});const blob=new Blob([rows.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`nandi_daily_movers_${new Date().toISOString().slice(0,10)}.csv`;a.click();toast('Daily movers CSV exported','ok')}
+function exportDailyMoversCSV(){const rows=[];document.querySelectorAll('#dmBody tr').forEach((tr)=>{const cells=[...tr.querySelectorAll('td')];if(cells.length<11)return;rows.push(cells[1].textContent.trim())});if(!rows.length){toast('No daily movers to export','err');return}const blob=new Blob([rows.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`nandi_daily_movers_${new Date().toISOString().slice(0,10)}.csv`;a.click();toast('Daily movers symbols exported (TradingView ready)','ok')}
 
 // ═══════════════════════════════════════════════════════════
 // SECTOR ROTATION TRACKER
@@ -8830,18 +8846,13 @@ function clearBreakouts() {
 
 function exportBreakouts() {
   if (!liveBreakouts.length) { toast('No breakouts to export','err'); return; }
-  const hdr = ['Time','Symbol','Direction','LTP','Level','%Break','Sector','Source','TradingView'];
-  const rows = liveBreakouts.map(b => [
-    (b.datetime||b.date), b.sym, b.dir,
-    b.price.toFixed(2), b.level.toFixed(2), b.pct,
-    b.sector, b.source, b.tv_url
-  ]);
-  const csv = [hdr, ...rows].map(r => r.join(',')).join('\n');
+  const seen = {};
+  const names = liveBreakouts.map(b => b.sym).filter(s => seen[s] ? false : (seen[s]=true)).join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.href = URL.createObjectURL(new Blob([names], {type:'text/csv'}));
   a.download = 'breakouts_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
-  toast('Breakouts exported','ok');
+  toast('Breakout symbols exported (TradingView ready)','ok');
 }
 
 
@@ -10260,17 +10271,64 @@ function getAlphaTier(sym) {
 /* ── Export CSV ── */
 function exportAlphaUniverse() {
   if (!_auUniverse.length) { toast('Build the universe first','err'); return; }
-  const hdr = ['Rank','Symbol','Sector','Index','Triggers','Wins','Losses','WR%','AvgWin%','AvgLoss%','Expectancy%','LastTrigger','Trend'];
-  const rows = _auUniverse.map((u,i) =>
-    [i+1, u.sym, u.sector, u.index, u.triggers, u.wins, u.losses,
-     u.wr, u.avgWin, u.avgLoss, u.exp, u.lastTrig, u.trend].join(','));
-  const csv  = [hdr.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
+  const names = _auUniverse.map(u => u.sym).join('\n');
+  const blob = new Blob([names], {type:'text/csv'});
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(blob);
   a.download = `alpha_universe_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
-  toast('Alpha Universe exported','ok');
+  toast('Alpha Universe symbols exported (TradingView ready)','ok');
+}
+
+/* ── 1% Ready / Pre-Breakout / Breakout grid — symbol-only exports ── */
+function exportOnepcCSV() {
+  const rows = document.querySelectorAll('#onepcBody tr');
+  const seen = {}, names = [];
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 11) return;
+    const symCell = cells[1];
+    const sym = (symCell.childNodes[0] ? symCell.childNodes[0].textContent : symCell.textContent).trim();
+    if (sym && !seen[sym]) { seen[sym] = true; names.push(sym); }
+  });
+  if (!names.length) { toast('No 1% Ready stocks to export','err'); return; }
+  const blob = new Blob([names.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'nandi_1pct_ready_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('1% Ready symbols exported (TradingView ready)','ok');
+}
+
+function exportPboCSV(side) {
+  const bodyId = side==='buy' ? 'pboBuyBody' : 'pboSellBody';
+  const rows = document.querySelectorAll('#'+bodyId+' tr');
+  const seen = {}, names = [];
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 7) return;
+    const symCell = cells[1];
+    const sym = (symCell.childNodes[0] ? symCell.childNodes[0].textContent : symCell.textContent).trim();
+    if (sym && !seen[sym]) { seen[sym] = true; names.push(sym); }
+  });
+  if (!names.length) { toast('No pre-breakout '+side+' stocks to export','err'); return; }
+  const blob = new Blob([names.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'nandi_prebreakout_'+side+'_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('Pre-breakout '+side.toUpperCase()+' symbols exported (TradingView ready)','ok');
+}
+
+function exportBrkGridCSV(side) {
+  const dir = side==='buy' ? 'BUY' : 'SELL';
+  const list = (liveBreakouts||[]).filter(b => b.dir===dir);
+  const seen = {}, names = [];
+  list.forEach(b => { if (b.sym && !seen[b.sym]) { seen[b.sym] = true; names.push(b.sym); } });
+  if (!names.length) { toast('No breakout '+side+' stocks to export','err'); return; }
+  const blob = new Blob([names.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'nandi_breakout_'+side+'_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('Breakout '+side.toUpperCase()+' symbols exported (TradingView ready)','ok');
 }
 
 /* ── Auto-rebuild on every CSV load (called from processAll) ── */
