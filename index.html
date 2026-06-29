@@ -272,6 +272,73 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
 .legend-item{display:flex;align-items:center;gap:4px;font-size:7px;color:var(--text2)}
 .legend-color{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .sep{height:1px;background:var(--border);margin:8px 0}
+
+/* ── STICKY ACTION BANNER ── */
+.action-banner{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  padding:0;margin:0;transition:all .4s;
+  font-family:var(--mono);
+}
+.banner-inner{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 20px;min-height:56px;
+  border-bottom:2px solid transparent;
+  transition:all .4s;
+}
+.banner-inner.LONG{background:linear-gradient(135deg,#14532d,#166534);border-color:#22c55e}
+.banner-inner.SHORT{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#ef4444}
+.banner-inner.LE{background:linear-gradient(135deg,#1e1b4b,#312e81);border-color:#818cf8}
+.banner-inner.SE{background:linear-gradient(135deg,#431407,#7c2d12);border-color:#fb923c}
+.banner-inner.NEUTRAL{background:var(--bg2);border-color:var(--border)}
+.banner-inner.flash{animation:bannerFlash 1s ease-in-out 5}
+@keyframes bannerFlash{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.6)}
+}
+.b-sig{font-size:22px;font-weight:900;min-width:48px;text-align:center;letter-spacing:1px}
+.b-sig.LONG{color:#4ade80}.b-sig.SHORT{color:#f87171}
+.b-sig.LE{color:#a5b4fc}.b-sig.SE{color:#fb923c}
+.b-sig.NEUTRAL{color:var(--text3);font-size:16px}
+.b-action{font-size:13px;font-weight:800;color:#fff;white-space:nowrap}
+.b-action.NEUTRAL{color:var(--text2);font-size:11px}
+.b-details{display:flex;flex-direction:column;gap:2px;flex:1}
+.b-details .b-time{font-size:8px;color:rgba(255,255,255,.6)}
+.b-details .b-time.NEUTRAL{color:var(--text3)}
+.b-spread{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.b-spread-tag{font-size:9px;font-weight:800;padding:3px 10px;border-radius:12px;
+              border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);
+              color:#fff;white-space:nowrap}
+.b-spread-tag.NEUTRAL{background:var(--bg3);color:var(--text2);border-color:var(--border)}
+.b-pnl{font-size:14px;font-weight:900;text-align:right;min-width:100px}
+.b-pnl.pos{color:#4ade80}.b-pnl.neg{color:#f87171}.b-pnl.zero{color:rgba(255,255,255,.5)}
+.b-vix{display:flex;flex-direction:column;align-items:center;
+        padding:4px 12px;border-radius:8px;background:rgba(255,255,255,.08);
+        border:1px solid rgba(255,255,255,.12);min-width:70px}
+.b-vix label{font-size:6px;color:rgba(255,255,255,.5);letter-spacing:1px;text-transform:uppercase}
+.b-vix .vv{font-size:14px;font-weight:900;color:#fbbf24}
+.b-vix.NEUTRAL{background:var(--bg3);border-color:var(--border)}
+.b-vix.NEUTRAL label{color:var(--text3)}
+.b-vix.NEUTRAL .vv{color:var(--amber)}
+/* push app content below sticky banner */
+.app{padding-top:70px !important}
+/* Light theme banner overrides */
+[data-theme="light"] .banner-inner.LONG{background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-color:#16a34a}
+[data-theme="light"] .banner-inner.SHORT{background:linear-gradient(135deg,#fee2e2,#fecaca);border-color:#dc2626}
+[data-theme="light"] .banner-inner.LE{background:linear-gradient(135deg,#ede9fe,#ddd6fe);border-color:#4f46e5}
+[data-theme="light"] .banner-inner.SE{background:linear-gradient(135deg,#ffedd5,#fed7aa);border-color:#ea580c}
+[data-theme="light"] .banner-inner.NEUTRAL{background:var(--bg2);border-color:var(--border)}
+[data-theme="light"] .b-action{color:#1a1d23}
+[data-theme="light"] .b-action.NEUTRAL{color:var(--text2)}
+[data-theme="light"] .b-details .b-time{color:rgba(0,0,0,.4)}
+[data-theme="light"] .b-spread-tag{background:rgba(0,0,0,.08);color:#1a1d23;border-color:rgba(0,0,0,.15)}
+[data-theme="light"] .b-sig.LONG{color:#16a34a}
+[data-theme="light"] .b-sig.SHORT{color:#dc2626}
+[data-theme="light"] .b-sig.LE{color:#4f46e5}
+[data-theme="light"] .b-sig.SE{color:#ea580c}
+[data-theme="light"] .b-pnl.pos{color:#16a34a}
+[data-theme="light"] .b-pnl.neg{color:#dc2626}
+[data-theme="light"] .b-vix{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1)}
+[data-theme="light"] .b-vix label{color:rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -287,6 +354,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
   </div>
 </div>
 
+
+<!-- STICKY ACTION BANNER -->
+<div class="action-banner" id="actionBanner">
+  <div class="banner-inner NEUTRAL" id="bannerInner">
+    <div class="b-sig NEUTRAL" id="bSig">—</div>
+    <div class="b-details">
+      <div class="b-action NEUTRAL" id="bAction">No signal yet — load data to begin</div>
+      <div class="b-time NEUTRAL" id="bTime">—</div>
+      <div class="b-spread" id="bSpread"></div>
+    </div>
+    <div class="b-vix NEUTRAL" id="bVix">
+      <label>INDIA VIX</label>
+      <div class="vv" id="vixVal">—</div>
+    </div>
+    <div class="b-pnl zero" id="bPnl"></div>
+  </div>
+</div>
 <div class="app">
 
 <!-- HEADER -->
@@ -1204,6 +1288,386 @@ function runBacktest(){
   document.getElementById('btLogWrap').style.display='block';
   toast(`Done: ${trades.length} trades · ${totPL>0?'+':''}${totPL} pts · PF ${pf}`,'ok');
 }
+
+
+// ══════════════════════════════════════════════════════
+// INDIA VIX
+// ══════════════════════════════════════════════════════
+let currentVIX = 13.5; // default > 12 = credit spreads
+let vixFetched = false;
+
+async function fetchVIX(){
+  if(!zdLive) return;
+  try{
+    const res = await fetch(`${ZD_WORKER}/kite/quote?i=NSE:INDIA+VIX`,{
+      headers:{'X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}
+    });
+    const j = await res.json();
+    const data = j.data || j;
+    const key = Object.keys(data).find(k=>k.includes('VIX'));
+    if(key && data[key].last_price){
+      currentVIX = data[key].last_price;
+      vixFetched = true;
+      document.getElementById('vixVal').textContent = currentVIX.toFixed(2);
+      updateBanner();
+    }
+  }catch(e){ /* silent fail - default credit spreads */ }
+}
+
+// ══════════════════════════════════════════════════════
+// EXPIRY CALCULATION
+// Next expiry: last Tuesday of month, preference monthly
+// DTE: 21-45 days, ascending, monthly priority
+// Lot size: 65
+// ══════════════════════════════════════════════════════
+function getLastTuesdayOfMonth(year, month){
+  // month is 0-indexed
+  const lastDay = new Date(year, month+1, 0);
+  const dow = lastDay.getDay(); // 0=Sun,2=Tue
+  const diff = (dow >= 2) ? dow - 2 : dow + 5;
+  return new Date(year, month, lastDay.getDate() - diff);
+}
+
+function getAllTuesdays(fromDate, toDate){
+  const tuesdays = [];
+  const d = new Date(fromDate);
+  // advance to next Tuesday
+  const dow = d.getDay();
+  const daysToTue = (2 - dow + 7) % 7;
+  d.setDate(d.getDate() + (daysToTue === 0 ? 7 : daysToTue));
+  while(d <= toDate){
+    tuesdays.push(new Date(d));
+    d.setDate(d.getDate() + 7);
+  }
+  return tuesdays;
+}
+
+function getMonthlyExpiry(year, month){
+  return getLastTuesdayOfMonth(year, month);
+}
+
+function findBestExpiry(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const minDTE = 21, maxDTE = 45;
+  const minDate = new Date(today); minDate.setDate(minDate.getDate() + minDTE);
+  const maxDate = new Date(today); maxDate.setDate(maxDate.getDate() + maxDTE);
+
+  // Get all monthly expiries in next 3 months
+  const monthlies = [];
+  for(let m=0; m<4; m++){
+    const d = new Date(today.getFullYear(), today.getMonth()+m, 1);
+    const exp = getLastTuesdayOfMonth(d.getFullYear(), d.getMonth());
+    if(exp > today) monthlies.push(exp);
+  }
+
+  // Find monthly in window (priority)
+  const monthlyInWindow = monthlies.find(e => e >= minDate && e <= maxDate);
+  if(monthlyInWindow) return {date:monthlyInWindow, type:'Monthly'};
+
+  // Get all Tuesdays in window
+  const weeklies = getAllTuesdays(minDate, maxDate);
+  // Exclude last Tuesdays of month (those are monthly)
+  const monthlyDates = monthlies.map(d=>d.toDateString());
+  const weeklyOnly = weeklies.filter(d=>!monthlyDates.includes(d.toDateString()));
+
+  if(weeklyOnly.length > 0){
+    weeklyOnly.sort((a,b)=>a-b);
+    return {date:weeklyOnly[0], type:'Weekly'};
+  }
+
+  // If nothing in window, take next monthly beyond 45 days
+  const nextMonthly = monthlies.find(e => e > maxDate);
+  if(nextMonthly) return {date:nextMonthly, type:'Monthly (>45d)'};
+
+  return null;
+}
+
+function formatExpiry(date){
+  return date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function getDTE(date){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((date-today)/(1000*60*60*24));
+}
+
+// ══════════════════════════════════════════════════════
+// SPREAD SUGGESTION
+// ══════════════════════════════════════════════════════
+function getSpreadDetails(sig, niftyPrice){
+  const isLong = (sig === 'L');
+  const vix = currentVIX;
+  const creditMode = vix >= 12; // default true
+
+  // ATM = round to nearest 50
+  const atm = Math.round(niftyPrice / 50) * 50;
+
+  // Wing: 250-300 pts away (use 300 for safety)
+  const wing = 300;
+
+  let spreadName, sellStrike, buyStrike, optionType, action;
+
+  if(creditMode){
+    if(isLong){
+      // Bull Put Spread: sell ATM put, buy put 300 below
+      spreadName = 'Bull Put Spread';
+      optionType = 'PUT';
+      sellStrike = atm;
+      buyStrike  = atm - wing;
+      action = 'SELL';
+    } else {
+      // Bear Call Spread: sell ATM call, buy call 300 above
+      spreadName = 'Bear Call Spread';
+      optionType = 'CALL';
+      sellStrike = atm;
+      buyStrike  = atm + wing;
+      action = 'SELL';
+    }
+  } else {
+    if(isLong){
+      // Bull Call Spread: buy ATM call, sell call 300 above
+      spreadName = 'Bull Call Spread';
+      optionType = 'CALL';
+      sellStrike = atm + wing;
+      buyStrike  = atm;
+      action = 'BUY';
+    } else {
+      // Bear Put Spread: buy ATM put, sell put 300 below
+      spreadName = 'Bear Put Spread';
+      optionType = 'PUT';
+      sellStrike = atm - wing;
+      buyStrike  = atm;
+      action = 'BUY';
+    }
+  }
+
+  const expiry = findBestExpiry();
+
+  return {
+    spreadName, optionType, action,
+    sellStrike, buyStrike, atm, wing,
+    expiry, vix, creditMode,
+    lotSize: 65
+  };
+}
+
+// ══════════════════════════════════════════════════════
+// OPEN TRADE TRACKING
+// ══════════════════════════════════════════════════════
+const TRADE_KEY = 'hma921_open_trade_v1';
+let openTrade = null; // {sig, entryPrice, entryTime, spread, strikes, expiry}
+
+function saveOpenTrade(){
+  try{ localStorage.setItem(TRADE_KEY, JSON.stringify(openTrade)); }catch(e){}
+}
+function loadOpenTrade(){
+  try{
+    const raw = localStorage.getItem(TRADE_KEY);
+    if(raw) openTrade = JSON.parse(raw);
+  }catch(e){}
+}
+function clearOpenTrade(){
+  openTrade = null;
+  localStorage.removeItem(TRADE_KEY);
+}
+
+// ══════════════════════════════════════════════════════
+// MAIN BANNER UPDATE
+// ══════════════════════════════════════════════════════
+function updateBanner(){
+  if(!bars.length) return;
+  const n = bars.length - 1;
+  const sig = getSig(n);
+  const bar = bars[n];
+  const price = bar.close;
+  const dt = new Date(bar.dt);
+  const dtStr = dt.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',
+                                            hour:'2-digit',minute:'2-digit'});
+
+  const inner  = document.getElementById('bannerInner');
+  const bSig   = document.getElementById('bSig');
+  const bAct   = document.getElementById('bAction');
+  const bTime  = document.getElementById('bTime');
+  const bSpread= document.getElementById('bSpread');
+  const bPnl   = document.getElementById('bPnl');
+  const bVixEl = document.getElementById('bVix');
+  const vixValEl = document.getElementById('vixVal');
+
+  // VIX display
+  vixValEl.textContent = vixFetched ? currentVIX.toFixed(2) : '—';
+  const vixCls = sig && sig !== 'NEUTRAL' ? sig : 'NEUTRAL';
+  bVixEl.className = `b-vix ${vixCls}`;
+
+  // Handle new L or S — open trade
+  if((sig === 'L' || sig === 'S') && sig !== lastBannerSig){
+    const spread = getSpreadDetails(sig, price);
+    openTrade = {
+      sig, entryPrice: price, entryTime: bar.dt,
+      spread: spread.spreadName, optionType: spread.optionType,
+      sellStrike: spread.sellStrike, buyStrike: spread.buyStrike,
+      expiry: spread.expiry, vix: currentVIX
+    };
+    saveOpenTrade();
+    flashBanner();
+  }
+
+  // Handle LE or SE — close trade
+  if((sig === 'LE' || sig === 'SE') && openTrade){
+    // Keep openTrade ref for display but mark closed
+    openTrade.exitPrice = price;
+    openTrade.exitTime  = bar.dt;
+    openTrade.closed    = true;
+    saveOpenTrade();
+  }
+
+  // Determine display
+  let cls, sigTxt, actionTxt, timeTxt, spreadHtml, pnlHtml;
+
+  if(sig === 'L'){
+    cls = 'LONG';
+    sigTxt = 'L';
+    actionTxt = '🟢 ENTER LONG NOW';
+    timeTxt = `Signal at ${dtStr} · Nifty ${price.toFixed(2)}`;
+    const sp = getSpreadDetails('L', price);
+    spreadHtml = buildSpreadHTML(sp);
+    pnlHtml = '';
+  }
+  else if(sig === 'S'){
+    cls = 'SHORT';
+    sigTxt = 'S';
+    actionTxt = '🔴 ENTER SHORT NOW';
+    timeTxt = `Signal at ${dtStr} · Nifty ${price.toFixed(2)}`;
+    const sp = getSpreadDetails('S', price);
+    spreadHtml = buildSpreadHTML(sp);
+    pnlHtml = '';
+  }
+  else if(sig === 'LE'){
+    cls = 'LE';
+    sigTxt = 'LE';
+    actionTxt = '🔵 EXIT LONG NOW';
+    if(openTrade && !openTrade.closed){
+      const pts = (price - openTrade.entryPrice).toFixed(2);
+      const ptsNum = parseFloat(pts);
+      const entDt = new Date(openTrade.entryTime).toLocaleString('en-IN',
+        {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      timeTxt = `Entry: ${entDt} @ ${openTrade.entryPrice.toFixed(2)} · Exit now @ ${price.toFixed(2)}`;
+      pnlHtml = `<span class="${ptsNum>=0?'pos':'neg'}">${ptsNum>=0?'+':''}${pts} pts</span>`;
+      spreadHtml = openTrade?`<span class="b-spread-tag">Was: ${openTrade.spread}</span>`:'';
+    } else {
+      timeTxt = `Exit signal at ${dtStr}`;
+      pnlHtml = '';
+      spreadHtml = '';
+    }
+  }
+  else if(sig === 'SE'){
+    cls = 'SE';
+    sigTxt = 'SE';
+    actionTxt = '🟠 EXIT SHORT NOW';
+    if(openTrade && !openTrade.closed){
+      const pts = (openTrade.entryPrice - price).toFixed(2);
+      const ptsNum = parseFloat(pts);
+      const entDt = new Date(openTrade.entryTime).toLocaleString('en-IN',
+        {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      timeTxt = `Entry: ${entDt} @ ${openTrade.entryPrice.toFixed(2)} · Exit now @ ${price.toFixed(2)}`;
+      pnlHtml = `<span class="${ptsNum>=0?'pos':'neg'}">${ptsNum>=0?'+':''}${pts} pts</span>`;
+      spreadHtml = openTrade?`<span class="b-spread-tag">Was: ${openTrade.spread}</span>`:'';
+    } else {
+      timeTxt = `Exit signal at ${dtStr}`;
+      pnlHtml = '';
+      spreadHtml = '';
+    }
+  }
+  else {
+    // No signal — show last signal info or holding bias
+    cls = 'NEUTRAL';
+    const above = !isNaN(h13[n]) && !isNaN(h21[n]) && h13[n] > h21[n];
+    sigTxt = above ? '▲' : '▼';
+    // Show last trade info if available
+    if(openTrade && !openTrade.closed){
+      const pts = openTrade.sig==='L'
+        ? (price - openTrade.entryPrice).toFixed(2)
+        : (openTrade.entryPrice - price).toFixed(2);
+      const ptsNum = parseFloat(pts);
+      const entDt = new Date(openTrade.entryTime).toLocaleString('en-IN',
+        {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      actionTxt = `${above?'▲ LONG BIAS':'▼ SHORT BIAS'} · In ${openTrade.sig==='L'?'LONG':'SHORT'} trade`;
+      timeTxt = `Entered ${entDt} @ ${openTrade.entryPrice.toFixed(2)} · Current: ${price.toFixed(2)}`;
+      pnlHtml = `<span class="${ptsNum>=0?'pos':'neg'}">${ptsNum>=0?'+':''}${pts} pts</span>`;
+      spreadHtml = `<span class="b-spread-tag NEUTRAL">${openTrade.spread} · Sell ${openTrade.sellStrike} ${openTrade.optionType} / Buy ${openTrade.buyStrike}</span>`;
+    } else {
+      actionTxt = above ? '▲ LONG BIAS — Holding · No new signal' : '▼ SHORT BIAS — Holding · No new signal';
+      // Show last signal info
+      if(openTrade){
+        const entDt = new Date(openTrade.entryTime).toLocaleString('en-IN',
+          {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        const exitDt = openTrade.exitTime ? new Date(openTrade.exitTime).toLocaleString('en-IN',
+          {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+        const pts = openTrade.closed
+          ? (openTrade.sig==='L'
+            ? (openTrade.exitPrice - openTrade.entryPrice).toFixed(2)
+            : (openTrade.entryPrice - openTrade.exitPrice).toFixed(2))
+          : '—';
+        timeTxt = `Last: ${openTrade.sig} @ ${entDt} (${openTrade.entryPrice.toFixed(2)}) → Exit: ${exitDt}`;
+        pnlHtml = pts!=='—' ? `<span class="${parseFloat(pts)>=0?'pos':'neg'}">${parseFloat(pts)>=0?'+':''}${pts} pts</span>` : '';
+        spreadHtml = `<span class="b-spread-tag NEUTRAL">${openTrade.spread}</span>`;
+      } else {
+        timeTxt = 'Waiting for next crossover signal…';
+        pnlHtml = '';
+        spreadHtml = '';
+      }
+    }
+  }
+
+  // Apply to DOM
+  inner.className = `banner-inner ${cls}`;
+  bSig.className  = `b-sig ${cls}`;
+  bSig.textContent = sigTxt;
+  bAct.className  = `b-action${cls==='NEUTRAL'?' NEUTRAL':''}`;
+  bAct.textContent = actionTxt;
+  bTime.className = `b-time${cls==='NEUTRAL'?' NEUTRAL':''}`;
+  bTime.textContent = timeTxt;
+  bSpread.innerHTML = spreadHtml;
+  bPnl.innerHTML = pnlHtml;
+  bPnl.className = `b-pnl${pnlHtml.includes('pos')?'':pnlHtml.includes('neg')?'':' zero'}`;
+
+  lastBannerSig = sig;
+}
+
+let lastBannerSig = null;
+
+function buildSpreadHTML(sp){
+  if(!sp) return '';
+  const expStr = sp.expiry
+    ? `${formatExpiry(sp.expiry.date)} · ${getDTE(sp.expiry.date)}d · ${sp.expiry.type}`
+    : '—';
+  return `
+    <span class="b-spread-tag">${sp.spreadName}</span>
+    <span class="b-spread-tag">SELL ${sp.sellStrike} ${sp.optionType}</span>
+    <span class="b-spread-tag">BUY ${sp.buyStrike} ${sp.optionType}</span>
+    <span class="b-spread-tag">Expiry: ${expStr}</span>
+    <span class="b-spread-tag">VIX: ${sp.vix.toFixed(1)} · ${sp.creditMode?'Credit':'Debit'} · Lot 65</span>
+  `;
+}
+
+function flashBanner(){
+  const inner = document.getElementById('bannerInner');
+  inner.classList.remove('flash');
+  void inner.offsetWidth; // reflow
+  inner.classList.add('flash');
+  setTimeout(()=>inner.classList.remove('flash'), 5500);
+}
+
+// Hook updateBanner into all data update points
+const _origUpdateUI = typeof updateUI === 'function' ? updateUI : null;
+function updateUI(){
+  if(_origUpdateUI) _origUpdateUI();
+  updateBanner();
+  if(zdLive && !vixFetched) fetchVIX();
+}
+
+// Load open trade on startup
+loadOpenTrade();
 
 // CSS helpers used in table
 const style=document.createElement('style');
