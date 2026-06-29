@@ -666,11 +666,15 @@ function zdDisconnect(){
   toast('Disconnected','info');
 }
 
-window.addEventListener('load',()=>{
+window.addEventListener('load',async ()=>{
   const k=sessionStorage.getItem('zd_n8_key');
   const t=sessionStorage.getItem('zd_n8_tok');
   if(k&&t){document.getElementById('zdKey').value=k;document.getElementById('zdTok').value=t;}
-  restoreData();
+  // Show IDB storage info
+  const sz=await idbSize();
+  if(sz.usedMB!=='?')
+    toast(`IndexedDB ready · ${sz.usedMB}MB / ${sz.quotaMB}MB used`,'kite');
+  await restoreData();
 });
 
 // ── HMA MATH ──
@@ -966,7 +970,7 @@ function addRecentSig(sig,dt,price){
   });
   if(recentSigs.length>30)recentSigs.pop();
   renderRecentSigs();
-  try{localStorage.setItem(STORE_SIGS,JSON.stringify(recentSigs));}catch(e){}
+  idbSet(STORE_SIGS,recentSigs);
 }
 
 function renderRecentSigs(){
@@ -1038,8 +1042,8 @@ function loadCSV(){
     const map=new Map(bars.map(b=>[b.dt,b]));
     newBars.forEach(b=>{if(!map.has(b.dt))map.set(b.dt,b);});
     bars=[...map.values()].sort((a,b)=>a.dt.localeCompare(b.dt));
-    recalc();saveData();updateUI();renderHMATable();
-    toast(`Loaded ${newBars.length} bars · ${bars.length} total`,'ok');
+    recalc();updateUI();renderHMATable();
+    saveData().then(()=>toast(`Loaded ${newBars.length} bars · ${bars.length} total stored in IndexedDB`,'ok'));
   };
   r.readAsText(f);
 }
@@ -1089,7 +1093,7 @@ async function fetchLive(){
       const map=new Map(bars.map(b=>[b.dt,b]));
       nb.forEach(b=>map.set(b.dt,b));
       bars=[...map.values()].sort((a,b)=>a.dt.localeCompare(b.dt));
-      recalc();saveData();updateUI();
+      recalc();updateUI();saveData();
       document.getElementById('fetchBar').style.width='100%';
       setTimeout(()=>document.getElementById('fetchProg').style.display='none',600);
       document.getElementById('lastFetch').textContent='Last: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -1124,39 +1128,178 @@ function toggleAuto(){
   }
 }
 
-// ── STORAGE ──
-function saveData(){
-  try{localStorage.setItem(STORE_BARS,JSON.stringify(bars));}
-  catch(e){toast('Storage full — export data!','err');}
+// ══════════════════════════════════════════════════════
+// INDEXEDDB — handles 500MB+ (same pattern as TRAM app)
+// ══════════════════════════════════════════════════════
+const IDB_NAME='HMA921_DB',IDB_VER=1,IDB_STORE='hma921_store';
+let _idb=null;
+
+function openIDB(){
+  return new Promise((res,rej)=>{
+    if(_idb){res(_idb);return;}
+    const req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(IDB_STORE))
+        db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess=e=>{_idb=e.target.result;res(_idb);};
+    req.onerror=e=>rej(e);
+  });
 }
-function restoreData(){
+
+async function idbSet(key,val){
   try{
-    const raw=localStorage.getItem(STORE_BARS);
-    if(raw){
-      bars=JSON.parse(raw);
-      recalc();updateUI();renderHMATable();
-      toast(`Restored ${bars.length} bars`,'kite');
-    }
-    const sigs=localStorage.getItem(STORE_SIGS);
-    if(sigs){recentSigs=JSON.parse(sigs);renderRecentSigs();}
-  }catch(e){}
+    const db=await openIDB();
+    return new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).put(val,key);
+      tx.oncomplete=()=>res(true);
+      tx.onerror=()=>{
+        // Fallback to localStorage for small items
+        try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
+        res(false);
+      };
+    });
+  }catch(e){
+    try{localStorage.setItem(key,JSON.stringify(val));}catch(e2){}
+    return false;
+  }
 }
-function clearAll(){
-  if(!confirm('Clear all Nifty data?'))return;
-  bars=[];h13=[];h21=[];h81=[];recentSigs=[];lastSig=null;
-  localStorage.removeItem(STORE_BARS);localStorage.removeItem(STORE_SIGS);
+
+async function idbGet(key){
+  try{
+    const db=await openIDB();
+    return new Promise(res=>{
+      const tx=db.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess=()=>{
+        if(req.result!==undefined){res(req.result);return;}
+        // Fallback: check localStorage
+        try{
+          const ls=localStorage.getItem(key);
+          res(ls?JSON.parse(ls):null);
+        }catch(e){res(null);}
+      };
+      req.onerror=()=>{
+        try{
+          const ls=localStorage.getItem(key);
+          res(ls?JSON.parse(ls):null);
+        }catch(e){res(null);}
+      };
+    });
+  }catch(e){
+    try{
+      const ls=localStorage.getItem(key);
+      return ls?JSON.parse(ls):null;
+    }catch(e2){return null;}
+  }
+}
+
+async function idbDel(key){
+  try{
+    const db=await openIDB();
+    return new Promise(res=>{
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete=()=>res(true);
+      tx.onerror=()=>res(false);
+    });
+  }catch(e){return false;}
+}
+
+async function idbSize(){
+  try{
+    if(navigator.storage&&navigator.storage.estimate){
+      const{usage,quota}=await navigator.storage.estimate();
+      return{
+        usedMB:(usage/1024/1024).toFixed(1),
+        quotaMB:(quota/1024/1024).toFixed(0),
+        pct:((usage/quota)*100).toFixed(1)
+      };
+    }
+  }catch(e){}
+  return{usedMB:'?',quotaMB:'?',pct:'?'};
+}
+
+// ── STORAGE FUNCTIONS ──
+async function saveData(){
+  try{
+    await idbSet(STORE_BARS, bars);
+    // Show storage usage
+    const sz=await idbSize();
+    document.getElementById('dataStats').textContent=
+      `${bars.length} bars · ${bars[0]?.dt} → ${bars[bars.length-1]?.dt} · Storage: ${sz.usedMB}MB / ${sz.quotaMB}MB (${sz.pct}%)`;
+  }catch(e){
+    toast('Save error: '+e.message,'err');
+  }
+}
+
+async function restoreData(){
+  try{
+    // Migrate from localStorage if needed
+    const lsRaw=localStorage.getItem(STORE_BARS);
+    if(lsRaw){
+      try{
+        const lsBars=JSON.parse(lsRaw);
+        if(lsBars&&lsBars.length){
+          await idbSet(STORE_BARS,lsBars);
+          localStorage.removeItem(STORE_BARS);
+          toast(`Migrated ${lsBars.length} bars to IndexedDB`,'kite');
+        }
+      }catch(e){}
+    }
+
+    const raw=await idbGet(STORE_BARS);
+    if(raw&&raw.length){
+      bars=raw;
+      recalc();updateUI();renderHMATable();
+      const sz=await idbSize();
+      toast(`Restored ${bars.length} bars · ${sz.usedMB}MB used`,'kite');
+    }
+
+    const sigs=await idbGet(STORE_SIGS);
+    if(sigs&&sigs.length){recentSigs=sigs;renderRecentSigs();}
+
+    // Restore open trade
+    loadOpenTrade();
+
+    // Update storage display
+    const sz=await idbSize();
+    document.getElementById('dataStats').textContent=bars.length
+      ?`${bars.length} bars · ${bars[0]?.dt} → ${bars[bars.length-1]?.dt} · Storage: ${sz.usedMB}MB / ${sz.quotaMB}MB`
+      :'No data loaded';
+  }catch(e){
+    toast('Restore error: '+e.message,'err');
+  }
+}
+
+async function clearAll(){
+  if(!confirm('Clear all Nifty HMA data from IndexedDB?'))return;
+  bars=[];h13=[];h21=[];h81=[];recentSigs=[];lastSig=null;lastBannerSig=null;openTrade=null;
+  await idbDel(STORE_BARS);
+  await idbDel(STORE_SIGS);
+  await idbDel(TRADE_KEY);
+  localStorage.removeItem(STORE_BARS);
+  localStorage.removeItem(STORE_SIGS);
+  localStorage.removeItem(TRADE_KEY);
   document.getElementById('dataStats').textContent='No data loaded';
   updatePreview();renderRecentSigs();
-  toast('All data cleared','info');
+  // Reset banner
+  const inner=document.getElementById('bannerInner');
+  if(inner)inner.className='banner-inner NEUTRAL';
+  toast('All data cleared from IndexedDB','info');
 }
+
 function exportCSV(){
-  if(!bars.length){toast('No data','err');return;}
+  if(!bars.length){toast('No data to export','err');return;}
   const rows=['Date_Time,Open,High,Low,Close'];
   bars.forEach(b=>rows.push(`${b.dt},${b.open},${b.high},${b.low},${b.close}`));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
   a.download=`nifty_39min_hma921_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();toast('CSV exported','ok');
+  a.click();
+  toast(`Exported ${bars.length} bars as CSV`,'ok');
 }
 
 function updateStats(){
@@ -1459,16 +1602,21 @@ const TRADE_KEY = 'hma921_open_trade_v1';
 let openTrade = null; // {sig, entryPrice, entryTime, spread, strikes, expiry}
 
 function saveOpenTrade(){
-  try{ localStorage.setItem(TRADE_KEY, JSON.stringify(openTrade)); }catch(e){}
+  idbSet(TRADE_KEY, openTrade);
 }
-function loadOpenTrade(){
+async function loadOpenTrade(){
   try{
-    const raw = localStorage.getItem(TRADE_KEY);
-    if(raw) openTrade = JSON.parse(raw);
+    // Try IDB first
+    const raw = await idbGet(TRADE_KEY);
+    if(raw) { openTrade = raw; updateBanner(); return; }
+    // Fallback localStorage
+    const ls = localStorage.getItem(TRADE_KEY);
+    if(ls){ openTrade = JSON.parse(ls); idbSet(TRADE_KEY,openTrade); updateBanner(); }
   }catch(e){}
 }
-function clearOpenTrade(){
+async function clearOpenTrade(){
   openTrade = null;
+  await idbDel(TRADE_KEY);
   localStorage.removeItem(TRADE_KEY);
 }
 
@@ -1666,8 +1814,8 @@ function updateUI(){
   if(zdLive && !vixFetched) fetchVIX();
 }
 
-// Load open trade on startup
-loadOpenTrade();
+// Load open trade on startup (async IDB)
+// loadOpenTrade() is now called inside restoreData()
 
 // CSS helpers used in table
 const style=document.createElement('style');
