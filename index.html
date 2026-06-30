@@ -281,8 +281,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
 }
 .banner-inner{
   display:flex;align-items:center;gap:14px;
-  padding:10px 20px;min-height:56px;
-  border-bottom:2px solid transparent;
+  padding:14px 24px;min-height:68px;
+  border-bottom:3px solid transparent;
   transition:all .4s;
 }
 .banner-inner.LONG{background:linear-gradient(135deg,#14532d,#166534);border-color:#22c55e}
@@ -295,11 +295,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
   0%,100%{filter:brightness(1)}
   50%{filter:brightness(1.6)}
 }
-.b-sig{font-size:22px;font-weight:900;min-width:48px;text-align:center;letter-spacing:1px}
+.b-sig{font-size:28px;font-weight:900;min-width:60px;text-align:center;letter-spacing:2px}
 .b-sig.LONG{color:#4ade80}.b-sig.SHORT{color:#f87171}
 .b-sig.LE{color:#a5b4fc}.b-sig.SE{color:#fb923c}
 .b-sig.NEUTRAL{color:var(--text3);font-size:16px}
-.b-action{font-size:13px;font-weight:800;color:#fff;white-space:nowrap}
+.b-action{font-size:15px;font-weight:900;color:#fff;white-space:nowrap;letter-spacing:.5px}
 .b-action.NEUTRAL{color:var(--text2);font-size:11px}
 .b-details{display:flex;flex-direction:column;gap:2px;flex:1}
 .b-details .b-time{font-size:8px;color:rgba(255,255,255,.6)}
@@ -320,7 +320,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
 .b-vix.NEUTRAL label{color:var(--text3)}
 .b-vix.NEUTRAL .vv{color:var(--amber)}
 /* push app content below sticky banner */
-.app{padding-top:70px !important}
+.app{padding-top:82px !important}
 /* Light theme banner overrides */
 [data-theme="light"] .banner-inner.LONG{background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-color:#16a34a}
 [data-theme="light"] .banner-inner.SHORT{background:linear-gradient(135deg,#fee2e2,#fecaca);border-color:#dc2626}
@@ -364,9 +364,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
       <div class="b-time NEUTRAL" id="bTime">—</div>
       <div class="b-spread" id="bSpread"></div>
     </div>
-    <div class="b-vix NEUTRAL" id="bVix">
-      <label>INDIA VIX</label>
+    <div class="b-vix NEUTRAL" id="bVix" onclick="promptVIX()" title="Click to set VIX manually">
+      <label>INDIA VIX ✎</label>
       <div class="vv" id="vixVal">—</div>
+      <div style="font-size:6px;color:rgba(255,255,255,.4);margin-top:1px" id="vixMode">default credit</div>
     </div>
     <div class="b-pnl zero" id="bPnl"></div>
   </div>
@@ -459,9 +460,150 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab(this,'live')">📡 Live Monitor</button>
+  <button class="tab" onclick="switchTab(this,'spread')">💰 Spread Tracker</button>
   <button class="tab" onclick="switchTab(this,'hma-data')">📊 HMA Data Table</button>
   <button class="tab" onclick="switchTab(this,'data')">📂 Data Management</button>
   <button class="tab" onclick="switchTab(this,'backtest')">📈 Backtest</button>
+</div>
+
+<!-- TAB: SPREAD P&L TRACKER -->
+<div class="tab-panel" id="tab-spread">
+  <div class="card">
+    <div class="card-title">💰 Live Credit Spread P&L Tracker</div>
+    <div style="font-size:8px;color:var(--text3);margin-bottom:10px">
+      Track combined spread P&L across both legs in real time · Set up your position once, monitor live · Target based on % of margin
+    </div>
+
+    <!-- Position Setup -->
+    <div class="card" style="background:var(--bg3);margin-bottom:10px">
+      <div class="card-title">⚙ Position Setup</div>
+      <div class="inp-row">
+        <span class="inp-label">Strategy</span>
+        <select class="inp" id="spreadType" style="width:160px">
+          <option value="bull_put">Bull Put Spread (Credit)</option>
+          <option value="bear_call">Bear Call Spread (Credit)</option>
+          <option value="bull_call">Bull Call Spread (Debit)</option>
+          <option value="bear_put">Bear Put Spread (Debit)</option>
+        </select>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Expiry</span>
+        <input class="inp" id="spreadExpiry" placeholder="e.g. 2026-07-28" style="width:130px">
+        <span class="inp-label" style="margin-left:8px">Lot Size</span>
+        <input class="inp" id="spreadLotSize" value="65" style="width:70px">
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">SELL Strike</span>
+        <input class="inp" id="sellStrike" placeholder="e.g. 23900" style="width:100px">
+        <span class="inp-label" style="margin-left:8px">SELL Entry ₹</span>
+        <input class="inp" id="sellEntryPrice" placeholder="e.g. 405" style="width:90px">
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">BUY Strike</span>
+        <input class="inp" id="buyStrike" placeholder="e.g. 24200" style="width:100px">
+        <span class="inp-label" style="margin-left:8px">BUY Entry ₹</span>
+        <input class="inp" id="buyEntryPrice" placeholder="e.g. 256.65" style="width:90px">
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Margin Used ₹</span>
+        <input class="inp" id="spreadMargin" placeholder="e.g. 34854" style="width:100px">
+        <span class="inp-label" style="margin-left:8px">Target %</span>
+        <input class="inp" id="targetPct" value="3.0" style="width:60px"> %
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn primary" onclick="initSpreadTracker()">▶ Start Tracking</button>
+        <button class="btn" onclick="fetchSpreadLTP()" id="refreshSpreadBtn" disabled>🔄 Refresh Live Prices</button>
+        <button class="btn success" onclick="toggleSpreadAuto()" id="spreadAutoBtn" disabled>▶ Auto-Refresh (30s)</button>
+        <span id="spreadAutoBadge" style="display:none" class="auto-badge">● LIVE</span>
+        <button class="btn danger" onclick="clearSpreadTracker()">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Live Tracker Display -->
+    <div id="spreadTrackerDisplay" style="display:none">
+
+      <!-- Big P&L banner -->
+      <div class="signal-box neutral" id="spreadPnlBox" style="margin-bottom:10px">
+        <div class="sig-label neutral" id="spreadPnlIcon">₹</div>
+        <div class="sig-info">
+          <div class="title" id="spreadPnlTitle">Combined Spread P&L</div>
+          <div class="sub" id="spreadPnlSub">—</div>
+        </div>
+        <div class="sig-time">
+          <div style="font-size:20px;font-weight:900" id="spreadPnlValue">₹0</div>
+          <div style="font-size:9px;margin-top:2px" id="spreadPnlPct">0.0% of margin</div>
+        </div>
+      </div>
+
+      <!-- Two legs side by side -->
+      <div class="hma-grid">
+        <div class="hma-card" id="sellLegCard">
+          <label>SELL LEG (Short)</label>
+          <div class="hma-val" id="sellLegLTP">—</div>
+          <div class="hma-prev" id="sellLegEntry">entry: —</div>
+          <div class="hma-dir" id="sellLegPnl">—</div>
+        </div>
+        <div class="hma-card" id="buyLegCard">
+          <label>BUY LEG (Long / Hedge)</label>
+          <div class="hma-val" id="buyLegLTP">—</div>
+          <div class="hma-prev" id="buyLegEntry">entry: —</div>
+          <div class="hma-dir" id="buyLegPnl">—</div>
+        </div>
+        <div class="hma-card" id="targetCard">
+          <label>TARGET (% of Margin)</label>
+          <div class="hma-val" id="targetValue">—</div>
+          <div class="hma-prev" id="targetDistance">remaining: —</div>
+          <div class="hma-dir" id="targetStatus">—</div>
+        </div>
+      </div>
+
+      <!-- Progress bar to target -->
+      <div class="card" style="background:var(--bg3);margin-top:10px">
+        <div class="card-title">Progress to Target</div>
+        <div class="progress" style="height:14px;border-radius:7px">
+          <div class="progress-bar" id="spreadProgressBar" style="height:100%;border-radius:7px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text3);margin-top:4px">
+          <span>0%</span>
+          <span id="spreadProgressLabel">0% of target reached</span>
+          <span id="targetPctLabel">3.0%</span>
+        </div>
+      </div>
+
+      <!-- Roll/Adjust helper -->
+      <div class="card" style="background:var(--bg3);margin-top:10px">
+        <div class="card-title">🔄 Roll to New Strike (Hedge Stays)</div>
+        <div style="font-size:8px;color:var(--text3);margin-bottom:8px">
+          If you buy back your current SELL leg and sell a new strike, your existing BUY leg automatically re-hedges. Enter the new strike to recalculate the new spread.
+        </div>
+        <div class="inp-row">
+          <span class="inp-label">New SELL Strike</span>
+          <input class="inp" id="newSellStrike" placeholder="e.g. 24000" style="width:100px">
+          <span class="inp-label" style="margin-left:8px">New SELL Price ₹</span>
+          <input class="inp" id="newSellPrice" placeholder="current premium" style="width:100px">
+          <button class="btn primary" onclick="rollSpread()" style="margin-left:8px">Roll Position</button>
+        </div>
+      </div>
+
+      <!-- Manual exit price calculator -->
+      <div class="card" style="background:var(--bg3);margin-top:10px">
+        <div class="card-title">🎯 Exit Order Helper</div>
+        <div style="font-size:8px;color:var(--text3);margin-bottom:8px">
+          Suggested limit prices to place your exit orders right now (small buffer added to ensure fill)
+        </div>
+        <div class="sum-grid" style="margin-bottom:0">
+          <div class="sum-card">
+            <label>Buy Back SELL Leg @</label>
+            <div class="val pos" id="exitSellPrice">—</div>
+          </div>
+          <div class="sum-card">
+            <label>Sell BUY Leg @</label>
+            <div class="val pos" id="exitBuyPrice">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TAB: LIVE -->
@@ -650,6 +792,13 @@ function zdConnect(){
     ['fetchBtn','autoBtn','appendBtn','zdDisBtn'].forEach(id=>{
       const el=document.getElementById(id);if(el)el.disabled=false;
     });
+    // Enable spread tracker buttons if a position is active
+    if(spreadPosition){
+      const rb=document.getElementById('refreshSpreadBtn'); if(rb)rb.disabled=false;
+      const ab=document.getElementById('spreadAutoBtn'); if(ab)ab.disabled=false;
+    }
+    // Fetch VIX immediately on connect
+    setTimeout(fetchVIX, 500);
   }).catch(()=>{setDot('err');setSt('Failed');toast('Connection failed','err');});
 }
 
@@ -1099,6 +1248,8 @@ async function fetchLive(){
       document.getElementById('lastFetch').textContent='Last: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       setDot('ok');setSt(`${bars.length} bars`);
       toast(`Fetched ${nb.length} bars · ${bars.length} total`,'ok');
+      // Also fetch VIX on each data refresh
+      fetchVIX();
     } else {setDot('err');setSt('No data');toast('No candles from Kite','err');}
   }catch(e){setDot('err');setSt('Error');toast('Fetch error: '+e.message,'err');
     document.getElementById('fetchProg').style.display='none';}
@@ -1343,6 +1494,7 @@ function runBacktest(){
   if(bars.length<50){toast('Need 50+ bars','err');return;}
   recalc();
   const trades=[];
+  const byM={};
   let pos=null,ep=0,ei=0;
   for(let i=1;i<bars.length;i++){
     const b=bars[i];
@@ -1437,24 +1589,71 @@ function runBacktest(){
 // INDIA VIX
 // ══════════════════════════════════════════════════════
 let currentVIX = 13.5; // default > 12 = credit spreads
+
+function promptVIX(){
+  const val = prompt('Enter India VIX value manually (current: '+currentVIX.toFixed(2)+'):');
+  if(val && !isNaN(parseFloat(val))){
+    currentVIX = parseFloat(val);
+    vixFetched = true;
+    const vixEl = document.getElementById('vixVal');
+    if(vixEl){
+      vixEl.textContent = currentVIX.toFixed(2);
+      vixEl.style.color = currentVIX > 20 ? '#f87171' :
+                          currentVIX < 12  ? '#4ade80' : '#fbbf24';
+    }
+    const modeEl = document.getElementById('vixMode');
+    if(modeEl) modeEl.textContent = 'manual · '+(currentVIX>=12?'credit':'debit');
+    updateBanner();
+    toast('VIX set to '+currentVIX.toFixed(2),'info');
+  }
+}
 let vixFetched = false;
 
 async function fetchVIX(){
   if(!zdLive) return;
-  try{
-    const res = await fetch(`${ZD_WORKER}/kite/quote?i=NSE:INDIA+VIX`,{
-      headers:{'X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}
-    });
-    const j = await res.json();
-    const data = j.data || j;
-    const key = Object.keys(data).find(k=>k.includes('VIX'));
-    if(key && data[key].last_price){
-      currentVIX = data[key].last_price;
-      vixFetched = true;
-      document.getElementById('vixVal').textContent = currentVIX.toFixed(2);
-      updateBanner();
-    }
-  }catch(e){ /* silent fail - default credit spreads */ }
+  // Try multiple VIX instrument token formats
+  const vixAttempts = [
+    `${ZD_WORKER}/kite/quote?i=NSE:INDIA+VIX`,
+    `${ZD_WORKER}/kite/quote?i=NSE%3AINDIA+VIX`,
+    `${ZD_WORKER}/kite/instruments/historical/264969/day?from=2020-01-01&to=2020-01-02`,
+  ];
+  for(const url of vixAttempts){
+    try{
+      const res = await fetch(url,{
+        headers:{'X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}
+      });
+      const j = await res.json();
+      // Try different response shapes
+      let vixVal = null;
+      if(j.data){
+        // Quote response: {data: {'NSE:INDIA VIX': {last_price:...}}}
+        const keys = Object.keys(j.data);
+        const vixKey = keys.find(k=>k.toUpperCase().includes('VIX'));
+        if(vixKey && j.data[vixKey].last_price){
+          vixVal = j.data[vixKey].last_price;
+        }
+        // Also try ohlc
+        if(!vixVal && vixKey && j.data[vixKey].ohlc){
+          vixVal = j.data[vixKey].ohlc.close;
+        }
+      }
+      if(vixVal && vixVal > 0){
+        currentVIX = vixVal;
+        vixFetched = true;
+        const vixEl = document.getElementById('vixVal');
+        if(vixEl) vixEl.textContent = currentVIX.toFixed(2);
+        // Color VIX: >20 = high (red), 12-20 = normal (amber), <12 = low (green)
+        if(vixEl){
+          vixEl.style.color = currentVIX > 20 ? '#f87171' :
+                              currentVIX < 12  ? '#4ade80' : '#fbbf24';
+        }
+        updateBanner();
+        return; // success, stop trying
+      }
+    }catch(e){ /* try next */ }
+  }
+  // All failed - use manual input fallback
+  console.warn('VIX fetch failed - using default 13.5 (credit spreads)');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1788,9 +1987,12 @@ function buildSpreadHTML(sp){
   if(!sp) return '';
   const expStr = sp.expiry
     ? `${formatExpiry(sp.expiry.date)} · ${getDTE(sp.expiry.date)}d · ${sp.expiry.type}`
-    : '—';
+    : 'Calculating…';
+  // Update VIX mode label
+  const modeEl = document.getElementById('vixMode');
+  if(modeEl) modeEl.textContent = (sp.creditMode?'credit':'debit')+' · VIX '+sp.vix.toFixed(1);
   return `
-    <span class="b-spread-tag">${sp.spreadName}</span>
+    <span class="b-spread-tag" style="font-size:10px;padding:4px 12px">${sp.spreadName}</span>
     <span class="b-spread-tag">SELL ${sp.sellStrike} ${sp.optionType}</span>
     <span class="b-spread-tag">BUY ${sp.buyStrike} ${sp.optionType}</span>
     <span class="b-spread-tag">Expiry: ${expStr}</span>
@@ -1811,7 +2013,10 @@ const _origUpdateUI = typeof updateUI === 'function' ? updateUI : null;
 function updateUI(){
   if(_origUpdateUI) _origUpdateUI();
   updateBanner();
-  if(zdLive && !vixFetched) fetchVIX();
+  // Fetch VIX if connected and not yet fetched
+  if(zdLive && !vixFetched){
+    fetchVIX();
+  }
 }
 
 // Load open trade on startup (async IDB)
@@ -1854,6 +2059,283 @@ function toggleTheme(){
     if(label)label.textContent='Dark';
   }
 })();
+
+// ══════════════════════════════════════════════════════
+// SPREAD P&L TRACKER
+// ══════════════════════════════════════════════════════
+const SPREAD_KEY = 'hma921_spread_position_v1';
+let spreadPosition = null; // {type, expiry, lotSize, sellStrike, sellEntry, buyStrike, buyEntry, margin, targetPct, sellLTP, buyLTP}
+let spreadAutoInt = null;
+
+function getOptionSymbol(strike, expiry, type){
+  // type: 'C' or 'P'
+  // expiry format from input: YYYY-MM-DD -> convert to Kite format DDMMM (e.g. 28JUL26)
+  if(!expiry) return null;
+  const d = new Date(expiry);
+  const day = String(d.getDate()).padStart(2,'0');
+  const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const mon = months[d.getMonth()];
+  const yr = String(d.getFullYear()).slice(2);
+  return `NIFTY${yr}${mon}${strike}${type}`;
+}
+
+function initSpreadTracker(){
+  const type = document.getElementById('spreadType').value;
+  const expiry = document.getElementById('spreadExpiry').value;
+  const lotSize = parseFloat(document.getElementById('spreadLotSize').value) || 65;
+  const sellStrike = parseFloat(document.getElementById('sellStrike').value);
+  const sellEntry = parseFloat(document.getElementById('sellEntryPrice').value);
+  const buyStrike = parseFloat(document.getElementById('buyStrike').value);
+  const buyEntry = parseFloat(document.getElementById('buyEntryPrice').value);
+  const margin = parseFloat(document.getElementById('spreadMargin').value);
+  const targetPct = parseFloat(document.getElementById('targetPct').value) || 3.0;
+
+  if(!sellStrike || !sellEntry || !buyStrike || !buyEntry || !margin){
+    toast('Fill in all strike, premium and margin fields first','err');
+    return;
+  }
+
+  const isCredit = (type === 'bull_put' || type === 'bear_call');
+  const optType = (type === 'bull_put' || type === 'bull_call') ? 
+    (type === 'bull_put' ? 'P' : 'C') : 
+    (type === 'bear_call' ? 'C' : 'P');
+
+  spreadPosition = {
+    type, expiry, lotSize, sellStrike, sellEntry, buyStrike, buyEntry,
+    margin, targetPct, isCredit, optType,
+    sellLTP: sellEntry, buyLTP: buyEntry,
+    netCreditEntry: isCredit ? (sellEntry - buyEntry) : (buyEntry - sellEntry),
+    createdAt: new Date().toISOString()
+  };
+
+  saveSpreadPosition();
+  document.getElementById('spreadTrackerDisplay').style.display = 'block';
+  document.getElementById('refreshSpreadBtn').disabled = !zdLive;
+  document.getElementById('spreadAutoBtn').disabled = !zdLive;
+  updateSpreadDisplay();
+  toast('Spread tracker started — '+spreadPosition.type.replace('_',' '),'ok');
+
+  if(zdLive) fetchSpreadLTP();
+}
+
+async function fetchSpreadLTP(){
+  if(!spreadPosition){ toast('Set up your position first','err'); return; }
+  if(!zdLive){ toast('Connect Kite first to fetch live prices','err'); return; }
+
+  const sellSym = getOptionSymbol(spreadPosition.sellStrike, spreadPosition.expiry, spreadPosition.optType);
+  const buySym  = getOptionSymbol(spreadPosition.buyStrike, spreadPosition.expiry, spreadPosition.optType);
+
+  if(!sellSym || !buySym){ toast('Check expiry date format (YYYY-MM-DD)','err'); return; }
+
+  try{
+    const url = `${ZD_WORKER}/kite/quote?i=NFO:${sellSym}&i=NFO:${buySym}`;
+    const res = await fetch(url, {
+      headers:{'X-Kite-Version':'3','Authorization':`token ${zdApiKey}:${zdToken}`}
+    });
+    const j = await res.json();
+    const data = j.data || j;
+
+    const sellKey = Object.keys(data).find(k=>k.includes(sellSym));
+    const buyKey  = Object.keys(data).find(k=>k.includes(buySym));
+
+    if(sellKey && data[sellKey].last_price){
+      spreadPosition.sellLTP = data[sellKey].last_price;
+    }
+    if(buyKey && data[buyKey].last_price){
+      spreadPosition.buyLTP = data[buyKey].last_price;
+    }
+
+    if(!sellKey || !buyKey){
+      toast('Could not find option symbols — check strike/expiry match exchange format','err');
+    } else {
+      toast('Live prices updated','ok');
+    }
+
+    saveSpreadPosition();
+    updateSpreadDisplay();
+  }catch(e){
+    toast('Fetch error: '+e.message,'err');
+  }
+}
+
+function updateSpreadDisplay(){
+  if(!spreadPosition) return;
+  const sp = spreadPosition;
+  const lot = sp.lotSize;
+
+  // Combined P&L calculation
+  let pnlInr;
+  if(sp.isCredit){
+    // Credit spread: profit = (entry credit - current cost to close) * lot
+    const currentSpreadValue = sp.sellLTP - sp.buyLTP;
+    pnlInr = (sp.netCreditEntry - currentSpreadValue) * lot;
+  } else {
+    // Debit spread: profit = (current value - entry cost) * lot
+    const currentSpreadValue = sp.buyLTP - sp.sellLTP;
+    pnlInr = (currentSpreadValue - sp.netCreditEntry) * lot;
+  }
+
+  const pnlPct = (pnlInr / sp.margin) * 100;
+  const targetInr = sp.margin * (sp.targetPct/100);
+  const progressPct = Math.max(0, Math.min(100, (pnlInr/targetInr)*100));
+
+  // Update big banner
+  const box = document.getElementById('spreadPnlBox');
+  const icon = document.getElementById('spreadPnlIcon');
+  const title = document.getElementById('spreadPnlTitle');
+  const sub = document.getElementById('spreadPnlSub');
+  const valueEl = document.getElementById('spreadPnlValue');
+  const pctEl = document.getElementById('spreadPnlPct');
+
+  const reachedTarget = pnlInr >= targetInr;
+  const cls = reachedTarget ? 'LONG' : (pnlInr >= 0 ? 'NEUTRAL' : 'SHORT');
+
+  box.className = `signal-box ${cls}`;
+  icon.className = `sig-label ${cls}`;
+  icon.textContent = reachedTarget ? '✓' : (pnlInr >= 0 ? '₹' : '₹');
+  title.textContent = reachedTarget ? '🎯 TARGET REACHED — Consider Exit' : 'Combined Spread P&L';
+  sub.textContent = `${sp.type.replace('_',' ').toUpperCase()} · Sell ${sp.sellStrike}${sp.optType} / Buy ${sp.buyStrike}${sp.optType} · Expiry ${sp.expiry}`;
+  valueEl.textContent = (pnlInr>=0?'+':'') + '₹' + Math.round(pnlInr).toLocaleString('en-IN');
+  valueEl.style.color = pnlInr>=0 ? '#4ade80' : '#f87171';
+  pctEl.textContent = (pnlPct>=0?'+':'') + pnlPct.toFixed(2) + '% of margin';
+
+  // Update leg cards
+  const sellPnlPerUnit = sp.sellEntry - sp.sellLTP; // profit on short leg if premium dropped
+  const buyPnlPerUnit  = sp.buyLTP - sp.buyEntry;   // profit on long leg if premium rose
+  const sellPnlInr = sellPnlPerUnit * lot;
+  const buyPnlInr  = buyPnlPerUnit * lot;
+
+  document.getElementById('sellLegLTP').textContent = '₹'+sp.sellLTP.toFixed(2);
+  document.getElementById('sellLegEntry').textContent = 'entry: ₹'+sp.sellEntry.toFixed(2);
+  document.getElementById('sellLegPnl').textContent = (sellPnlInr>=0?'+':'')+'₹'+Math.round(sellPnlInr);
+  document.getElementById('sellLegPnl').className = 'hma-dir '+(sellPnlInr>=0?'up':'dn');
+
+  document.getElementById('buyLegLTP').textContent = '₹'+sp.buyLTP.toFixed(2);
+  document.getElementById('buyLegEntry').textContent = 'entry: ₹'+sp.buyEntry.toFixed(2);
+  document.getElementById('buyLegPnl').textContent = (buyPnlInr>=0?'+':'')+'₹'+Math.round(buyPnlInr);
+  document.getElementById('buyLegPnl').className = 'hma-dir '+(buyPnlInr>=0?'up':'dn');
+
+  document.getElementById('targetValue').textContent = '₹'+Math.round(targetInr).toLocaleString('en-IN');
+  document.getElementById('targetDistance').textContent = 'remaining: ₹'+Math.round(Math.max(0,targetInr-pnlInr)).toLocaleString('en-IN');
+  document.getElementById('targetStatus').textContent = reachedTarget ? '✓ REACHED' : progressPct.toFixed(0)+'% there';
+  document.getElementById('targetStatus').className = 'hma-dir '+(reachedTarget?'up':'flat');
+
+  // Progress bar
+  const barEl = document.getElementById('spreadProgressBar');
+  barEl.style.width = progressPct+'%';
+  barEl.style.background = reachedTarget ? 
+    'linear-gradient(90deg,#22c55e,#4ade80)' : 
+    'linear-gradient(90deg,var(--amber),#fbbf24)';
+  document.getElementById('spreadProgressLabel').textContent = progressPct.toFixed(0)+'% of target reached';
+  document.getElementById('targetPctLabel').textContent = sp.targetPct.toFixed(1)+'%';
+
+  // Exit order helper - buffer 2-3% for guaranteed fill
+  const sellExitPrice = sp.sellLTP * 1.02; // buy back slightly above LTP
+  const buyExitPrice  = sp.buyLTP * 0.98;  // sell slightly below LTP
+  document.getElementById('exitSellPrice').textContent = '₹'+sellExitPrice.toFixed(2);
+  document.getElementById('exitBuyPrice').textContent = '₹'+buyExitPrice.toFixed(2);
+
+  // Flash if target reached
+  if(reachedTarget && !sp._targetAlerted){
+    sp._targetAlerted = true;
+    saveSpreadPosition();
+    toast('🎯 Target reached! Spread P&L: ₹'+Math.round(pnlInr)+' ('+pnlPct.toFixed(2)+'%)','ok');
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      [0,0.25].forEach(t=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.frequency.value=1046;
+        g.gain.setValueAtTime(.3,ctx.currentTime+t);
+        g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.3);
+        o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.3);
+      });
+    }catch(e){}
+  }
+}
+
+function rollSpread(){
+  if(!spreadPosition){ toast('Set up a position first','err'); return; }
+  const newStrike = parseFloat(document.getElementById('newSellStrike').value);
+  const newPrice  = parseFloat(document.getElementById('newSellPrice').value);
+  if(!newStrike || !newPrice){ toast('Enter new strike and price','err'); return; }
+
+  spreadPosition.sellStrike = newStrike;
+  spreadPosition.sellEntry  = newPrice;
+  spreadPosition.sellLTP    = newPrice;
+  spreadPosition.netCreditEntry = spreadPosition.isCredit ? 
+    (newPrice - spreadPosition.buyEntry) : (spreadPosition.buyEntry - newPrice);
+  spreadPosition._targetAlerted = false;
+
+  document.getElementById('sellStrike').value = newStrike;
+  document.getElementById('sellEntryPrice').value = newPrice;
+  document.getElementById('newSellStrike').value = '';
+  document.getElementById('newSellPrice').value = '';
+
+  saveSpreadPosition();
+  updateSpreadDisplay();
+  toast('Position rolled to new strike '+newStrike+' — hedge leg unchanged','ok');
+}
+
+function toggleSpreadAuto(){
+  const btn = document.getElementById('spreadAutoBtn');
+  const badge = document.getElementById('spreadAutoBadge');
+  if(spreadAutoInt){
+    clearInterval(spreadAutoInt); spreadAutoInt=null;
+    btn.textContent='▶ Auto-Refresh (30s)';
+    badge.style.display='none';
+    toast('Auto-refresh stopped','info');
+  } else {
+    fetchSpreadLTP();
+    spreadAutoInt = setInterval(fetchSpreadLTP, 30000);
+    btn.textContent='⏹ Stop Auto-Refresh';
+    badge.style.display='inline-block';
+    toast('Auto-refreshing spread prices every 30s','ok');
+  }
+}
+
+function clearSpreadTracker(){
+  if(!confirm('Clear current spread tracking position?')) return;
+  if(spreadAutoInt){ clearInterval(spreadAutoInt); spreadAutoInt=null; }
+  spreadPosition = null;
+  idbDel(SPREAD_KEY);
+  document.getElementById('spreadTrackerDisplay').style.display='none';
+  document.getElementById('spreadAutoBadge').style.display='none';
+  document.getElementById('spreadAutoBtn').textContent='▶ Auto-Refresh (30s)';
+  ['spreadExpiry','sellStrike','sellEntryPrice','buyStrike','buyEntryPrice','spreadMargin'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  toast('Spread tracker cleared','info');
+}
+
+function saveSpreadPosition(){
+  idbSet(SPREAD_KEY, spreadPosition);
+}
+
+async function loadSpreadPosition(){
+  try{
+    const raw = await idbGet(SPREAD_KEY);
+    if(raw){
+      spreadPosition = raw;
+      document.getElementById('spreadType').value = spreadPosition.type;
+      document.getElementById('spreadExpiry').value = spreadPosition.expiry;
+      document.getElementById('spreadLotSize').value = spreadPosition.lotSize;
+      document.getElementById('sellStrike').value = spreadPosition.sellStrike;
+      document.getElementById('sellEntryPrice').value = spreadPosition.sellEntry;
+      document.getElementById('buyStrike').value = spreadPosition.buyStrike;
+      document.getElementById('buyEntryPrice').value = spreadPosition.buyEntry;
+      document.getElementById('spreadMargin').value = spreadPosition.margin;
+      document.getElementById('targetPct').value = spreadPosition.targetPct;
+      document.getElementById('spreadTrackerDisplay').style.display = 'block';
+      document.getElementById('refreshSpreadBtn').disabled = !zdLive;
+      document.getElementById('spreadAutoBtn').disabled = !zdLive;
+      updateSpreadDisplay();
+    }
+  }catch(e){}
+}
+
+// Load saved spread position on startup
+loadSpreadPosition();
 </script>
 </body>
 </html>
